@@ -2,6 +2,16 @@
 
 Tool zum Anonymisieren bzw. De-Anonymisieren von Textdateien auf Basis einer einfachen INI-Konfiguration. Die komplette Logik liegt in PowerShell (`deannon.ps1`) mit Shebang, sodass das Skript direkt (oder via `pwsh -File …`) gestartet werden kann.
 
+## Voraussetzungen
+
+- PowerShell 7.6 (oder höher) im `PATH`
+- Bash (für die Smokey-Smoke-Tests)
+- Smokey Smoke-Runner: <https://github.com/micwin/smokey>
+
+Optional, aber empfohlen:
+- Git für Versionsverwaltung/Commits
+- Schreibrechte auf die INI, da das Tool neue `full.*`-Sektionen anhängt
+
 ## Funktionsweise
 
 1. Die Richtung pro Datei wird primär über `full.*`-Paare erkannt:
