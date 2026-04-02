@@ -53,7 +53,7 @@ next_index=1
 - `direction_markers` ist optional und dient nur als Fallback, falls keine `full`-Paare vorhanden sind.
 - `full.<name>` repräsentiert feste Paare.
 - `hint.<name>` benötigt mindestens einen Regex (`hint`), optional `prefix`, `width`, `next_index`.
-- Neue Matches aus `hint.*` werden beim Speichern als zusätzliche `full.*`-Sektionen abgelegt; `assignments` existieren nicht mehr.
+- Neue Matches aus `hint.*` werden beim Speichern als zusätzliche `full.*`-Sektionen abgelegt.
 
 ## Installation
 
@@ -64,7 +64,7 @@ chmod +x deannon.ps1
 ## Nutzung
 
 ```bash
-./deannon.ps1 --config deannon.ini file1.txt file2.txt
+./deannon.ps1 -Config deannon.ini file1.txt file2.txt
 ```
 
 - Alternativ (plattformunabhängig): `pwsh -File deannon.ps1 -Config deannon.ini file.txt`.
@@ -72,15 +72,15 @@ chmod +x deannon.ps1
 
 ## Tests
 
-Die Smoke-Tests basieren auf Smokey (`~/projects/smokey`). Beispielaufruf unter Linux:
+Die Smoke-Tests basieren auf Smokey (siehe <https://github.com/micwin/smokey>). Beispielaufruf unter Linux:
 
 ```bash
 cd /home/micwin/projects/deannon
-~/projects/smokey/smokey --tests-dir tests.d
+smokey --tests-dir tests.d
 ```
 
 Jeder Lauf verwendet `tests.d/.smokey-state/…` als Scratch-Bereich und prüft:
-- `000-setup` kopiert das Sample-INI in einen temporären Ort und erzeugt Eingabe-/Erwartungsdateien.
+- `000-setup` kopiert die Fixtures aus `tests/testdata/` in einen temporären Ort.
 - `010-anonymize` führt `./deannon.ps1` aus und vergleicht die Ausgabe mit den erwarteten anonymisierten Zeilen.
 - `020-deanonymize` läuft das Tool erneut und stellt sicher, dass die Originaldaten wiederhergestellt werden.
 
