@@ -1,0 +1,4 @@
+Verbindung zu io.metafence aufgebaut.
+Namespace ns-prod-alpha wurde bereitgestellt.
+
+URL https://ns-prod-decadence.local.metafence.net geändert
