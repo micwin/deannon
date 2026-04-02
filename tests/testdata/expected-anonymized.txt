@@ -1,4 +1,4 @@
-Verbindung zu custA.example aufgebaut.
-Namespace NSX001 wurde bereitgestellt.
+Connection to custA.example established.
+Namespace NSX001 was provisioned.
 
-URL https://NSX002.local.CARL001.net geändert
+URL https://NSX002.local.CARL001.net changed

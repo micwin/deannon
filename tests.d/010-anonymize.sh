@@ -3,7 +3,7 @@ set -euo pipefail
 
 STATE_FILE="${SMOKEY_STATE_DIR}/state.env"
 if [[ ! -f "$STATE_FILE" ]]; then
-    echo "state.env fehlt (000-setup ausgeführt?)." >&2
+    echo "state.env missing (did 000-setup run?)." >&2
     exit 1
 fi
 # shellcheck disable=SC1090
@@ -14,17 +14,17 @@ pushd "$PROJECT_ROOT" >/dev/null
 popd >/dev/null
 
 if ! diff -u "$EXPECTED_ANON_PATH" "$INPUT_PATH"; then
-    echo "Anonymisierte Datei entspricht nicht der Erwartung" >&2
+    echo "Anonymized file does not match the expectation" >&2
     exit 1
 fi
 
 if ! grep -q '^original=ns-prod-alpha$' "$CONFIG_PATH"; then
-    echo "Neuer full-Eintrag für ns-prod-alpha fehlt im Config-File" >&2
+    echo "Missing auto-generated full entry for ns-prod-alpha" >&2
     exit 1
 fi
 
 if ! grep -q '^anonymized=NSX001$' "$CONFIG_PATH"; then
-    echo "Neuer full-Eintrag enthält nicht den erwarteten anonymisierten Wert" >&2
+    echo "Auto-generated full entry contains an unexpected anonymized value" >&2
     exit 1
 fi
 
