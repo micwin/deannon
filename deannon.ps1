@@ -1,7 +1,7 @@
 #!/usr/bin/env pwsh
 [CmdletBinding(PositionalBinding=$false)]
 param(
-    [Parameter(Mandatory=$true)]
+    [Parameter(Mandatory=$false)]
     [Alias('c')]
     [string]$Config,
 
@@ -449,6 +449,15 @@ function Apply-HintAnonymization {
 
 if (-not $Files -or $Files.Count -eq 0) {
     throw 'Please provide at least one file to process.'
+}
+
+if (-not $Config) {
+    $defaultConfig = Join-Path -Path (Get-Location) -ChildPath 'deannon.ini'
+    if (Test-Path -Path $defaultConfig -PathType Leaf) {
+        $Config = $defaultConfig
+    } else {
+        throw 'Missing --config/-Config and no deannon.ini in the current directory.'
+    }
 }
 
 $configObject = Get-ConfigObject -Path $Config

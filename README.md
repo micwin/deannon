@@ -1,22 +1,22 @@
 # deannon
 
-PowerShell-based utility for anonymizing and deanonymizing plain-text files based on an INI configuration. The script (`deannon.ps1`) carries a shebang so it can run directly on Linux/macOS or via `pwsh -File` on any platform.
+PowerShell-based utility for anonymizing and deanonymizing plain-text files via an INI configuration. The script (`deannon.ps1`) includes a shebang so you can run it directly on Linux/macOS or via `pwsh -File` on any platform.
 
 ## Prerequisites
 
 - PowerShell 7.6 or newer in `PATH`
-- Bash (only required to run the Smokey smoke tests)
-- [Smokey](https://github.com/micwin/smokey) installed somewhere in `PATH`
-- Optional but recommended: Git (for version control) and write access to the INI file (the tool appends new `full.*` sections when hints discover fresh tokens).
+- Bash (only needed to run the Smokey test suite)
+- [Smokey](https://github.com/micwin/smokey) available in `PATH`
+- Optional but recommended: Git and write access to the INI file (the tool appends new `full.*` sections when hints discover fresh tokens)
 
 ## How It Works
 
-1. Direction detection happens primarily via `full.*` pairs:
-   - If at least one `original` token exists but no `anonymized` token, the file is treated as original and gets anonymized.
+1. Direction is detected from `full.*` pairs:
+   - If at least one `original` token exists but no `anonymized` token, the file is anonymized.
    - If only anonymized tokens appear, the file is deanonymized.
-   - Files containing both or none of the tokens are skipped with a warning.
+   - Files containing both or none are skipped with a warning.
    - `direction_markers` act only as a fallback when no `full` pairs exist.
-2. `full.*` sections define case-insensitive one-to-one replacements that work in both directions.
+2. `full.*` sections define case-insensitive replacements that work in both directions.
 3. `hint.*` sections accept regular expressions (case-insensitive). Every match is anonymized and recorded as a new `full.*` pair so future runs (including deanonymization) rely solely on the growing `full` list.
 
 ## INI Structure Example
@@ -49,7 +49,7 @@ next_index=1
 
 - `direction_markers` is optional and only used when no `full` pairs exist.
 - `full.<name>` defines a static pair.
-- `hint.<name>` needs at least a regex (`hint`); `prefix`, `width`, and `next_index` are optional.
+- `hint.<name>` needs at least a regex; `prefix`, `width`, and `next_index` are optional.
 - Newly discovered matches are appended as `full.*` sections.
 
 ## Installation
@@ -64,7 +64,7 @@ chmod +x deannon.ps1
 ./deannon.ps1 -Config deannon.ini file1.txt file2.txt
 ```
 
-Alternative (platform independent) syntax:
+If `-Config` is omitted, the script looks for `./deannon.ini` in the current working directory and aborts if the file does not exist.
 
 ```bash
 pwsh -File deannon.ps1 -Config deannon.ini file.txt
@@ -74,7 +74,7 @@ During anonymization the script updates the INI; please commit those changes if 
 
 ## Tests
 
-Smoke tests are powered by Smokey (<https://github.com/micwin/smokey>):
+Smoke tests run via Smokey (<https://github.com/micwin/smokey>):
 
 ```bash
 cd /home/micwin/projects/deannon
