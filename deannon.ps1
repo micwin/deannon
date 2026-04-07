@@ -299,36 +299,40 @@ function Detect-DirectionFromFullPairs {
     )
 
     if (-not $Pairs -or $Pairs.Count -eq 0) {
-        return 'None'
+        return [pscustomobject]@{ Status = 'None'; OriginalMatches = @(); AnonymizedMatches = @() }
     }
 
-    $originalHit = $false
-    $anonymHit = $false
+    $originalSet = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+    $anonymSet = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
 
     foreach ($pair in $Pairs) {
         if (-not $pair) { continue }
-        if ($pair.original -and -not $originalHit) {
+        if ($pair.original) {
             $pattern = [System.Text.RegularExpressions.Regex]::new([regex]::Escape($pair.original), [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
             if ($pattern.IsMatch($Text)) {
-                $originalHit = $true
+                $originalSet.Add([string]$pair.original) | Out-Null
             }
         }
-        if ($pair.anonymized -and -not $anonymHit) {
+        if ($pair.anonymized) {
             $patternB = [System.Text.RegularExpressions.Regex]::new([regex]::Escape($pair.anonymized), [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
             if ($patternB.IsMatch($Text)) {
-                $anonymHit = $true
+                $anonymSet.Add([string]$pair.anonymized) | Out-Null
             }
-        }
-
-        if ($originalHit -and $anonymHit) {
-            break
         }
     }
 
-    if ($originalHit -and -not $anonymHit) { return 'Original' }
-    if ($anonymHit -and -not $originalHit) { return 'Anonymized' }
-    if ($originalHit -and $anonymHit) { return 'Ambiguous' }
-    return 'Unknown'
+    $originalHit = $originalSet.Count -gt 0
+    $anonymHit = $anonymSet.Count -gt 0
+    $status = 'Unknown'
+    if ($originalHit -and -not $anonymHit) { $status = 'Original' }
+    elseif ($anonymHit -and -not $originalHit) { $status = 'Anonymized' }
+    elseif ($originalHit -and $anonymHit) { $status = 'Ambiguous' }
+
+    return [pscustomobject]@{
+        Status = $status
+        OriginalMatches = @($originalSet)
+        AnonymizedMatches = @($anonymSet)
+    }
 }
 
 function Apply-FullReplacements {
@@ -472,14 +476,17 @@ foreach ($file in $Files) {
     }
 
     $text = Get-Content -Path $file -Raw
-    $directionStatus = Detect-DirectionFromFullPairs -Text $text -Pairs $configObject.pairs.full
+    $directionInfo = Detect-DirectionFromFullPairs -Text $text -Pairs $configObject.pairs.full
+    $directionStatus = $directionInfo.Status
     $direction = $null
 
     switch ($directionStatus) {
         'Original' { $direction = 'Original' }
         'Anonymized' { $direction = 'Anonymized' }
         'Ambiguous' {
-            Write-Warning "File '$file' enthält sowohl Original- als auch anonymisierte Tokens; überspringe."
+            $origList = if ($directionInfo.OriginalMatches.Count -gt 0) { $directionInfo.OriginalMatches -join ', ' } else { 'n/a' }
+            $anonList = if ($directionInfo.AnonymizedMatches.Count -gt 0) { $directionInfo.AnonymizedMatches -join ', ' } else { 'n/a' }
+            Write-Warning "File '$file' contains both original and anonymized tokens; skipping. Originals: $origList | Anonymized: $anonList"
             continue
         }
         'Unknown' {
