@@ -216,10 +216,10 @@ function Get-ConfigObject {
         }
     }
 
-    if ($sections.Keys -contains 'generated_entries') {
-        $section = $sections['generated_entries']
-        if ($section.Keys -contains 'file') {
-            $config.generated_pairs_file = $section['file']
+    if ($sections.Keys -contains 'global') {
+        $globalSection = $sections['global']
+        if ($globalSection.Keys -contains 'generated_entries_file') {
+            $config.generated_pairs_file = $globalSection['generated_entries_file']
         }
     }
 
@@ -284,6 +284,13 @@ function Save-ConfigObject {
     )
 
     $lines = New-Object System.Collections.Generic.List[string]
+
+    if ($Config.generated_pairs_file) {
+        $lines.Add('[global]')
+        $lines.Add("generated_entries_file=$($Config.generated_pairs_file)")
+        $lines.Add('')
+    }
+
     $markerLine = if ($Config.direction_markers.original) { $Config.direction_markers.original -join ',' } else { '' }
     $lines.Add('[direction_markers]')
     $lines.Add("original=$markerLine")

@@ -6,7 +6,7 @@ A PowerShell-based anonymizer/deanonymizer for structured and semi-structured te
 
 - **Automatic direction detection** based on existing `full.*` pairs (anonymize vs. deanonymize). Falls back to optional `direction_markers` when no full pair hits.
 - **Regex hints** (`hint.*`) discover new tokens, generate replacements (`prefix`, `width`, `next_index`), and fold them into `full.*` entries for future runs.
-- **External auto-entry store** to keep generated mappings separate from curated ones via `[generated_entries] file=generated-full.ini`.
+- **External auto-entry store** to keep generated mappings separate from curated ones via `[global] generated_entries_file=generated-full.ini`.
 - **Two-stage safety**: mixed original/anonymized tokens trigger warnings and skip the file; optional verbose output shows which pair matched.
 - **Smokey smoke tests** verify round-trip anonymize/deanonymize flows on sample fixtures.
 
@@ -39,14 +39,14 @@ prefix=CARL
 width=3
 next_index=1
 
-[generated_entries]
-file=generated-full.ini
+[global]
+generated_entries_file=generated-full.ini
 ```
 
 - `direction_markers` *(optional)*: strings that only appear in original data; used if no `full` hits exist.
 - `full.<name>`: fixed replacements, case-insensitive, work in both directions.
 - `hint.<name>`: regex-based discovery. Provide at least `hint`; `prefix`, `width`, `next_index` are optional.
-- `[generated_entries]`: when present, auto-generated pairs are written to the referenced INI file; the main INI stays human-managed.
+- `[global].generated_entries_file`: when present, auto-generated pairs are written to the referenced INI file; the main INI stays human-managed.
 
 ## Usage
 
