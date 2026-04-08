@@ -27,7 +27,7 @@ if grep -q 'svc-rand-' "$INPUT_PATH"; then
     exit 1
 fi
 
-if ! grep -Eq 'RND[[:alnum:]]{8}' "$INPUT_PATH"; then
+if ! grep -Eq '\[\[[[:alnum:]]{8}\]\]' "$INPUT_PATH"; then
     echo "Anonymized identifiers do not match expected random format" >&2
     exit 1
 fi

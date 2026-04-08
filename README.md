@@ -5,8 +5,8 @@ A PowerShell-based anonymizer/deanonymizer for structured and semi-structured te
 ## Highlights
 
 - **Automatic direction detection** uses existing `full.*` pairs to decide anonymize vs. deanonymize (only falls back to `direction_markers` if no full pair hits).
-- **Regex hints** (`hint.*`) can either run sequential counters (`prefix`/`width`/`next_index`) or mint random tokens (`random_length`/`random_charset`) and persist the results.
-- **Wrap-aware replacements** allow `wrap_prefix`/`wrap_postfix` on both full pairs and hints so anonymized values can be framed (e.g., `<<token>>`) without losing reversibility.
+- **Regex hints** (`hint.*`) can either run sequential counters (`width`/`next_index`) or mint random tokens (`randomize`/`random_charset`) and persist the results; `prefix`/`postfix` optionally wrap the generated value.
+- **Curated+generated pairs** always store the final anonymized token (including any brackets/prefixes), making deanonymization straightforward.
 - **External auto-entry store** keeps generated mappings in a dedicated INI via `[global] generated_entries_file=…`; the auto file uses the same format and is recreated on every successful run.
 - **Two-stage safety**: mixed original/anonymized tokens trigger warnings and skip the file; optional verbose output shows which pair matched.
 - **Smokey smoke tests** verify anonymize/deanonymize round trips plus random hint and wrap scenarios.
@@ -33,9 +33,7 @@ anonymized=custA.example
 
 [full.mgmt-namespace]
 original=de.micwin.core
-anonymized=tenant-42.core
-wrap_prefix=<<
-wrap_postfix=>>
+anonymized=<<tenant-42.core>>
 
 [hint.namespaces]
 hint=ns-prod-[a-z0-9]+
@@ -45,17 +43,16 @@ next_index=1
 
 [hint.random-services]
 hint=svc-rand-[0-9]{4}
-prefix=RND
-random_length=8
+randomize=8
 random_charset=alnum
-wrap_prefix=[[
-wrap_postfix=]]
+prefix=[[
+postfix=]]
 ```
 
 - `[global]`: points to the external auto-entry INI. The file is created if missing and re-written using the same INI format as the main config.
 - `direction_markers` *(optional)*: strings that only occur in original texts; used only when no `full.*` hits exist.
-- `full.<name>`: fixed, case-insensitive replacements that work for both directions. `wrap_prefix`/`wrap_postfix` (optional) inject delimiters around the anonymized value.
-- `hint.<name>`: regex-based discovery. Either specify `width` + `next_index` for sequential IDs or `random_length` (+ optional `random_charset`, default `alnum`) for random IDs. Hints can also define `wrap_prefix`/`wrap_postfix`; those values are stored alongside the generated auto entries.
+- `full.<name>`: fixed, case-insensitive replacements that work for both directions. Store the anonymized value exactly as it should appear (e.g., including `<< >>`).
+- `hint.<name>`: regex-based discovery. Either specify `width` + `next_index` for sequential IDs or `randomize` (+ optional `random_charset`, default `alnum`) for random IDs. Optional `prefix`/`postfix` wrap the generated payload before it is persisted as a `full.*` entry.
 
 ## Usage
 
