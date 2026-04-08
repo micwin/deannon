@@ -3,4 +3,4 @@ Namespace NSX001 was provisioned.
 
 URL https://NSX002.local.CARL001.net changed
 
-Service-id is SVC0010
+Service-id is SVC0010{"svc":"SVC0011","url":"https://NSX003.local.CARL001.net"}
