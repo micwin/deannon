@@ -17,6 +17,7 @@ ORIGINAL_PATH="$STATE_DIR/original.txt"
 EXPECTED_ANON_PATH="$STATE_DIR/expected-anonymized.txt"
 STATE_FILE="$STATE_DIR/state.env"
 INITIAL_CONFIG="$STATE_DIR/config.initial"
+AUTO_FILE="$STATE_DIR/generated-full.json"
 
 cp "$TESTDATA_DIR/config.ini" "$CONFIG_PATH"
 cp "$TESTDATA_DIR/config.ini" "$INITIAL_CONFIG"
@@ -24,6 +25,7 @@ cp "$TESTDATA_DIR/config.ini" "$INITIAL_CONFIG"
 cp "$TESTDATA_DIR/original.txt" "$ORIGINAL_PATH"
 cp "$ORIGINAL_PATH" "$INPUT_PATH"
 cp "$TESTDATA_DIR/expected-anonymized.txt" "$EXPECTED_ANON_PATH"
+rm -f "$AUTO_FILE"
 
 cat > "$STATE_FILE" <<STATE
 export PROJECT_ROOT="$PROJECT_ROOT"
@@ -33,6 +35,7 @@ export ORIGINAL_PATH="$ORIGINAL_PATH"
 export EXPECTED_ANON_PATH="$EXPECTED_ANON_PATH"
 export INITIAL_CONFIG="$INITIAL_CONFIG"
 export STATE_DIR="$STATE_DIR"
+export AUTO_FILE="$AUTO_FILE"
 STATE
 
 cat <<INFO

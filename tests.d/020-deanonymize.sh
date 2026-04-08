@@ -14,6 +14,11 @@ if [[ -z "${CONFIG_AFTER_ANON:-}" || ! -f "$CONFIG_AFTER_ANON" ]]; then
     exit 1
 fi
 
+if [[ -z "${AUTO_AFTER_ANON:-}" || ! -f "$AUTO_AFTER_ANON" ]]; then
+    echo "AUTO_AFTER_ANON missing – did 010-anonymize capture auto entries?" >&2
+    exit 1
+fi
+
 pushd "$PROJECT_ROOT" >/dev/null
 ./deannon.ps1 --config "$CONFIG_PATH" "$INPUT_PATH"
 popd >/dev/null
@@ -25,6 +30,11 @@ fi
 
 if ! diff -u "$CONFIG_AFTER_ANON" "$CONFIG_PATH"; then
     echo "Config changed during deanonymization" >&2
+    exit 1
+fi
+
+if ! diff -u "$AUTO_AFTER_ANON" "$AUTO_FILE"; then
+    echo "Generated entries file changed during deanonymization" >&2
     exit 1
 fi
 

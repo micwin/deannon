@@ -45,12 +45,15 @@ hint=metafence(?=\.net) ; only replace "metafence" before ".net"
 prefix=CARL
 width=3
 next_index=1
+
+[generated_entries]
+file=generated-full.json
 ```
 
 - `direction_markers` is optional and only used when no `full` pairs exist.
 - `full.<name>` defines a static pair.
 - `hint.<name>` needs at least a regex; `prefix`, `width`, and `next_index` are optional.
-- Newly discovered matches are appended as `full.*` sections.
+- Newly discovered matches are appended as `full.*` sections; if `[generated_entries]` is defined, auto-generated pairs are stored in the referenced JSON file.
 
 ## Installation
 
