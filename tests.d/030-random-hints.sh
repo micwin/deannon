@@ -1,21 +1,22 @@
 #!/usr/bin/env bash
+# 030-random-hints: run a dedicated config that exercises random token
+# generation and ensures mappings are persisted externally.
 set -euo pipefail
 
-STATE_FILE="${SMOKEY_STATE_DIR}/state.env"
-if [[ ! -f "$STATE_FILE" ]]; then
-    echo "state.env missing (did 000-setup run?)" >&2
-    exit 1
-fi
-# shellcheck disable=SC1090
-source "$STATE_FILE"
+: "${DEANNON_PS1:?}"
+: "${TESTDATA_DIR:?TESTDATA_DIR missing}"
+: "${SMOKEY_STATE_DIR:?}"
 
-CONFIG_PATH="$STATE_DIR/random-config.ini"
-INPUT_PATH="$STATE_DIR/random-input.txt"
-AUTO_PATH="$STATE_DIR/random-generated.ini"
-cp "$PROJECT_ROOT/tests/testdata/random-config.ini" "$CONFIG_PATH"
-cp "$PROJECT_ROOT/tests/testdata/random-input.txt" "$INPUT_PATH"
+RANDOM_DIR="${SMOKEY_STATE_DIR}/random"
+mkdir -p "$RANDOM_DIR"
+CONFIG_PATH="$RANDOM_DIR/random-config.ini"
+INPUT_PATH="$RANDOM_DIR/random-input.txt"
+AUTO_PATH="$RANDOM_DIR/random-generated.ini"
 
-if ./deannon.ps1 -Config "$CONFIG_PATH" "$INPUT_PATH"; then
+cp "$TESTDATA_DIR/random-config.ini" "$CONFIG_PATH"
+cp "$TESTDATA_DIR/random-input.txt" "$INPUT_PATH"
+
+if pwsh "$DEANNON_PS1" -Config "$CONFIG_PATH" "$INPUT_PATH"; then
     :
 else
     echo "random hint anonymization failed" >&2

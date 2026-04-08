@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# 000-setup: prepare shared fixtures under SMOKEY_STATE_DIR and record the
+#            important paths via smokey_env_save so later tests see them.
 set -euo pipefail
 
 if ! command -v pwsh >/dev/null 2>&1; then
@@ -6,40 +8,36 @@ if ! command -v pwsh >/dev/null 2>&1; then
     exit 1
 fi
 
-PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-TESTDATA_DIR="$PROJECT_ROOT/tests/testdata"
-STATE_DIR="${SMOKEY_STATE_DIR:-"$PROJECT_ROOT/.testrun"}"
-mkdir -p "$STATE_DIR"
+: "${PROJECT_ROOT:?PROJECT_ROOT missing (check tests.d/env.preseed)}"
+: "${TESTDATA_DIR:=${PROJECT_ROOT}/tests/testdata}"
+: "${DEANNON_PS1:?DEANNON_PS1 missing (check tests.d/env.preseed)}"
+: "${SMOKEY_STATE_DIR:?SMOKEY_STATE_DIR is required}"
 
-CONFIG_PATH="$STATE_DIR/config.ini"
-INPUT_PATH="$STATE_DIR/work.txt"
-ORIGINAL_PATH="$STATE_DIR/original.txt"
-EXPECTED_ANON_PATH="$STATE_DIR/expected-anonymized.txt"
-STATE_FILE="$STATE_DIR/state.env"
-INITIAL_CONFIG="$STATE_DIR/config.initial"
-AUTO_FILE="$STATE_DIR/generated-full.ini"
+WORK_DIR="${SMOKEY_STATE_DIR}/main"
+mkdir -p "$WORK_DIR"
+
+CONFIG_PATH="$WORK_DIR/config.ini"
+INPUT_PATH="$WORK_DIR/work.txt"
+ORIGINAL_PATH="$WORK_DIR/original.txt"
+EXPECTED_ANON_PATH="$WORK_DIR/expected-anonymized.txt"
+AUTO_FILE="$WORK_DIR/generated-full.ini"
 
 cp "$TESTDATA_DIR/config.ini" "$CONFIG_PATH"
-cp "$TESTDATA_DIR/config.ini" "$INITIAL_CONFIG"
-
 cp "$TESTDATA_DIR/original.txt" "$ORIGINAL_PATH"
 cp "$ORIGINAL_PATH" "$INPUT_PATH"
 cp "$TESTDATA_DIR/expected-anonymized.txt" "$EXPECTED_ANON_PATH"
-rm -f "$AUTO_FILE"
+: > "$AUTO_FILE"
 
-cat > "$STATE_FILE" <<STATE
-export PROJECT_ROOT="$PROJECT_ROOT"
-export CONFIG_PATH="$CONFIG_PATH"
-export INPUT_PATH="$INPUT_PATH"
-export ORIGINAL_PATH="$ORIGINAL_PATH"
-export EXPECTED_ANON_PATH="$EXPECTED_ANON_PATH"
-export INITIAL_CONFIG="$INITIAL_CONFIG"
-export STATE_DIR="$STATE_DIR"
-export AUTO_FILE="$AUTO_FILE"
-STATE
+export WORK_DIR CONFIG_PATH INPUT_PATH ORIGINAL_PATH EXPECTED_ANON_PATH AUTO_FILE
+smokey_env_save WORK_DIR
+smokey_env_save CONFIG_PATH
+smokey_env_save INPUT_PATH
+smokey_env_save ORIGINAL_PATH
+smokey_env_save EXPECTED_ANON_PATH
+smokey_env_save AUTO_FILE
 
 cat <<INFO
-STATE_DIR: $STATE_DIR
+WORK_DIR: $WORK_DIR
 CONFIG_PATH: $CONFIG_PATH
 INIT_DONE=1
 INFO

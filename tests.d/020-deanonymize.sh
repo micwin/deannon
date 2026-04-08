@@ -1,27 +1,17 @@
 #!/usr/bin/env bash
+# 020-deanonymize: ensure the anonymized file returns to its original form and
+#                  that neither the config nor generated entries mutate.
 set -euo pipefail
 
-STATE_FILE="${SMOKEY_STATE_DIR}/state.env"
-if [[ ! -f "$STATE_FILE" ]]; then
-    echo "state.env missing (did 000-setup run?)." >&2
-    exit 1
-fi
-# shellcheck disable=SC1090
-source "$STATE_FILE"
+: "${DEANNON_PS1:?}"
+: "${CONFIG_PATH:?Missing CONFIG_PATH (did 000-setup run?)}"
+: "${INPUT_PATH:?Missing INPUT_PATH}"
+: "${ORIGINAL_PATH:?Missing ORIGINAL_PATH}"
+: "${CONFIG_AFTER_ANON:?Missing CONFIG_AFTER_ANON (did 010-anonymize run?)}"
+: "${AUTO_FILE:?Missing AUTO_FILE}"
+: "${AUTO_AFTER_ANON:?Missing AUTO_AFTER_ANON}"
 
-if [[ -z "${CONFIG_AFTER_ANON:-}" || ! -f "$CONFIG_AFTER_ANON" ]]; then
-    echo "CONFIG_AFTER_ANON missing – did 010-anonymize succeed?" >&2
-    exit 1
-fi
-
-if [[ -z "${AUTO_AFTER_ANON:-}" || ! -f "$AUTO_AFTER_ANON" ]]; then
-    echo "AUTO_AFTER_ANON missing – did 010-anonymize capture auto entries?" >&2
-    exit 1
-fi
-
-pushd "$PROJECT_ROOT" >/dev/null
-./deannon.ps1 -Config "$CONFIG_PATH" "$INPUT_PATH"
-popd >/dev/null
+pwsh "$DEANNON_PS1" -Config "$CONFIG_PATH" "$INPUT_PATH"
 
 if ! diff -u "$ORIGINAL_PATH" "$INPUT_PATH"; then
     echo "Deanonymization did not restore the original file" >&2

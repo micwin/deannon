@@ -1,20 +1,21 @@
 #!/usr/bin/env bash
+# 040-postfix-wrap: confirm that static full pairs that already include their
+# own wrappers are replaced as-is.
 set -euo pipefail
 
-STATE_FILE="${SMOKEY_STATE_DIR}/state.env"
-if [[ ! -f "$STATE_FILE" ]]; then
-    echo "state.env missing (did 000-setup run?)" >&2
-    exit 1
-fi
-# shellcheck disable=SC1090
-source "$STATE_FILE"
+: "${DEANNON_PS1:?}"
+: "${TESTDATA_DIR:?}"
+: "${SMOKEY_STATE_DIR:?}"
 
-CONFIG_PATH="$STATE_DIR/postfix-config.ini"
-INPUT_PATH="$STATE_DIR/postfix-input.txt"
-cp "$PROJECT_ROOT/tests/testdata/postfix-config.ini" "$CONFIG_PATH"
-cp "$PROJECT_ROOT/tests/testdata/postfix-input.txt" "$INPUT_PATH"
+POSTFIX_DIR="${SMOKEY_STATE_DIR}/postfix"
+mkdir -p "$POSTFIX_DIR"
+CONFIG_PATH="$POSTFIX_DIR/postfix-config.ini"
+INPUT_PATH="$POSTFIX_DIR/postfix-input.txt"
 
-./deannon.ps1 -Config "$CONFIG_PATH" "$INPUT_PATH"
+cp "$TESTDATA_DIR/postfix-config.ini" "$CONFIG_PATH"
+cp "$TESTDATA_DIR/postfix-input.txt" "$INPUT_PATH"
+
+pwsh "$DEANNON_PS1" -Config "$CONFIG_PATH" "$INPUT_PATH"
 
 if ! grep -q 'Connecting to <<tenant-service>> endpoint\.' "$INPUT_PATH"; then
     echo "Postfix wrapping did not occur as expected" >&2
