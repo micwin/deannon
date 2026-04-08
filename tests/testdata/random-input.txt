@@ -1,0 +1,2 @@
+Primary id svc-rand-1234 should be anonymized.
+Secondary id svc-rand-5678 should also be anonymized.
