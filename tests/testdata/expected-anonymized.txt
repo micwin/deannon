@@ -2,3 +2,5 @@ Connection to custA.example established.
 Namespace NSX001 was provisioned.
 
 URL https://NSX002.local.CARL001.net changed
+
+Service-id is SVC0010

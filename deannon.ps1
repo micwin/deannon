@@ -532,7 +532,7 @@ foreach ($file in $Files) {
     }
 
     if ($finalText -ne $text) {
-        Set-Content -Path $file -Value $finalText -NoNewline
+        [System.IO.File]::WriteAllText($file, $finalText)
     }
 
     $stats += [pscustomobject]@{
