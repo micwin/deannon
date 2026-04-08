@@ -1,25 +1,23 @@
 # deannon
 
-PowerShell-based utility for anonymizing and deanonymizing plain-text files via an INI configuration. The script (`deannon.ps1`) includes a shebang so you can run it directly on Linux/macOS or via `pwsh -File` on any platform.
+A PowerShell-based anonymizer/deanonymizer for structured and semi-structured text (logs, JSON snippets, config files). Replacement rules come from a simple INI file, and hints (regex) can dynamically mint new pairs while keeping everything reversible. Works cross-platform (requires PowerShell 7+).
 
-## Prerequisites
+## Highlights
 
-- PowerShell 7.6 or newer in `PATH`
-- Bash (only needed to run the Smokey test suite)
-- [Smokey](https://github.com/micwin/smokey) available in `PATH`
-- Optional but recommended: Git and write access to the INI file (the tool appends new `full.*` sections when hints discover fresh tokens)
+- **Automatic direction detection** based on existing `full.*` pairs (anonymize vs. deanonymize). Falls back to optional `direction_markers` when no full pair hits.
+- **Regex hints** (`hint.*`) discover new tokens, generate replacements (`prefix`, `width`, `next_index`), and fold them into `full.*` entries for future runs.
+- **External auto-entry store** to keep generated mappings separate from curated ones via `[generated_entries] file=generated-full.json`.
+- **Two-stage safety**: mixed original/anonymized tokens trigger warnings and skip the file; optional verbose output shows which pair matched.
+- **Smokey smoke tests** verify round-trip anonymize/deanonymize flows on sample fixtures.
 
-## How It Works
+## Requirements
 
-1. Direction is detected from `full.*` pairs:
-   - If at least one `original` token exists but no `anonymized` token, the file is anonymized.
-   - If only anonymized tokens appear, the file is deanonymized.
-   - Files containing both or none are skipped with a warning.
-   - `direction_markers` act only as a fallback when no `full` pairs exist.
-2. `full.*` sections define case-insensitive replacements that work in both directions.
-3. `hint.*` sections accept regular expressions (case-insensitive). Every match is anonymized and recorded as a new `full.*` pair so future runs (including deanonymization) rely solely on the growing `full` list.
+- PowerShell 7.6+ (`pwsh` in `PATH`)
+- Bash (only for the Smokey tests)
+- [Smokey](https://github.com/micwin/smokey) CLI for the smoke suite
+- Write access to your INI (and the optional generated JSON file)
 
-## INI Structure Example
+## Configuration
 
 ```ini
 [direction_markers]
@@ -29,19 +27,14 @@ original=io.metafence,de.micwin
 original=io.metafence
 anonymized=custA.example
 
-; Example of an auto-generated hint hit
-[full.ns-prod-alpha]
-original=ns-prod-alpha
-anonymized=NSX001
-
 [hint.namespaces]
-hint=ns-prod-[a-z0-9]+   ; regex pattern (case-insensitive)
-prefix=NSX               ; prefix for generated values
-width=3                  ; zero-padding length (default 4)
-next_index=1             ; incremented after each new match
+hint=ns-prod-[a-z0-9]+
+prefix=NSX
+width=3
+next_index=1
 
 [hint.metafence]
-hint=metafence(?=\.net) ; only replace "metafence" before ".net"
+hint=metafence(?=\.net)
 prefix=CARL
 width=3
 next_index=1
@@ -50,43 +43,36 @@ next_index=1
 file=generated-full.json
 ```
 
-- `direction_markers` is optional and only used when no `full` pairs exist.
-- `full.<name>` defines a static pair.
-- `hint.<name>` needs at least a regex; `prefix`, `width`, and `next_index` are optional.
-- Newly discovered matches are appended as `full.*` sections; if `[generated_entries]` is defined, auto-generated pairs are stored in the referenced JSON file.
-
-## Installation
-
-```bash
-chmod +x deannon.ps1
-```
+- `direction_markers` *(optional)*: strings that only appear in original data; used if no `full` hits exist.
+- `full.<name>`: fixed replacements, case-insensitive, work in both directions.
+- `hint.<name>`: regex-based discovery. Provide at least `hint`; `prefix`, `width`, `next_index` are optional.
+- `[generated_entries]`: when present, auto-generated pairs are written to the referenced JSON file; the INI stays human-managed.
 
 ## Usage
 
 ```bash
-./deannon.ps1 -Config deannon.ini file1.txt file2.txt
+./deannon.ps1 -Config myrules.ini file1.txt file2.txt
 ```
 
-If `-Config` is omitted, the script looks for `./deannon.ini` in the current working directory and aborts if the file does not exist.
-
-```bash
-pwsh -File deannon.ps1 -Config deannon.ini file.txt
-```
-
-During anonymization the script updates the INI; please commit those changes if you track the file in Git.
+- Omit `-Config` to use `./deannon.ini` automatically (errors if missing).
+- During anonymization, the INI (and, if configured, the generated JSON file) will be updated. Commit changes if you keep them in Git.
+- Run with `-Verbose` for detailed direction/match logging.
 
 ## Tests
 
-Smoke tests run via Smokey (<https://github.com/micwin/smokey>):
+Smoke tests (Linux/macOS) ensure anonymize → deanonymize round trips:
 
 ```bash
 cd /home/micwin/projects/deannon
+mkdir -p tests.d/.smokey-state   # Smokey expects the dir to exist
 smokey --tests-dir tests.d
 ```
 
-Each run creates a scratch directory under `tests.d/.smokey-state/` and executes:
-- `000-setup` copies fixtures from `tests/testdata/` into the temporary workspace.
-- `010-anonymize` runs `./deannon.ps1` and checks the anonymized output.
-- `020-deanonymize` runs the tool again and ensures the original content is restored without mutating the config snapshot.
+The suite:
+- copies fixtures from `tests/testdata/`
+- runs `./deannon.ps1` once to anonymize (checking the generated JSON file for new pairs)
+- runs again to deanonymize and verifies both the text and the generated JSON snapshot remain unchanged
 
-Fixtures live in `tests/testdata/`, and the suite requires `pwsh` to be available.
+## Roadmap / Open Tasks
+
+See [`tasks/`](tasks/) for follow-up items such as collision handling, randomized replacements, metadata improvements, etc.
