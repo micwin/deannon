@@ -28,12 +28,12 @@ if [[ ! -f "$AUTO_FILE" ]]; then
     exit 1
 fi
 
-if ! grep -q '"original"[[:space:]]*:[[:space:]]*"ns-prod-alpha"' "$AUTO_FILE"; then
+if ! grep -q '^original=ns-prod-alpha$' "$AUTO_FILE"; then
     echo "Generated entries file lacks ns-prod-alpha mapping" >&2
     exit 1
 fi
 
-if ! grep -q '"original"[[:space:]]*:[[:space:]]*"svc-228845"' "$AUTO_FILE"; then
+if ! grep -q '^original=svc-228845$' "$AUTO_FILE"; then
     echo "Generated entries file lacks svc-228845 mapping" >&2
     exit 1
 fi

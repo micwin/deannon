@@ -17,7 +17,7 @@ ORIGINAL_PATH="$STATE_DIR/original.txt"
 EXPECTED_ANON_PATH="$STATE_DIR/expected-anonymized.txt"
 STATE_FILE="$STATE_DIR/state.env"
 INITIAL_CONFIG="$STATE_DIR/config.initial"
-AUTO_FILE="$STATE_DIR/generated-full.json"
+AUTO_FILE="$STATE_DIR/generated-full.ini"
 
 cp "$TESTDATA_DIR/config.ini" "$CONFIG_PATH"
 cp "$TESTDATA_DIR/config.ini" "$INITIAL_CONFIG"

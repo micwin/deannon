@@ -6,7 +6,7 @@ A PowerShell-based anonymizer/deanonymizer for structured and semi-structured te
 
 - **Automatic direction detection** based on existing `full.*` pairs (anonymize vs. deanonymize). Falls back to optional `direction_markers` when no full pair hits.
 - **Regex hints** (`hint.*`) discover new tokens, generate replacements (`prefix`, `width`, `next_index`), and fold them into `full.*` entries for future runs.
-- **External auto-entry store** to keep generated mappings separate from curated ones via `[generated_entries] file=generated-full.json`.
+- **External auto-entry store** to keep generated mappings separate from curated ones via `[generated_entries] file=generated-full.ini`.
 - **Two-stage safety**: mixed original/anonymized tokens trigger warnings and skip the file; optional verbose output shows which pair matched.
 - **Smokey smoke tests** verify round-trip anonymize/deanonymize flows on sample fixtures.
 
@@ -15,7 +15,7 @@ A PowerShell-based anonymizer/deanonymizer for structured and semi-structured te
 - PowerShell 7.6+ (`pwsh` in `PATH`)
 - Bash (only for the Smokey tests)
 - [Smokey](https://github.com/micwin/smokey) CLI for the smoke suite
-- Write access to your INI (and the optional generated JSON file)
+- Write access to your INI (and the optional generated auto-entry INI)
 
 ## Configuration
 
@@ -40,13 +40,13 @@ width=3
 next_index=1
 
 [generated_entries]
-file=generated-full.json
+file=generated-full.ini
 ```
 
 - `direction_markers` *(optional)*: strings that only appear in original data; used if no `full` hits exist.
 - `full.<name>`: fixed replacements, case-insensitive, work in both directions.
 - `hint.<name>`: regex-based discovery. Provide at least `hint`; `prefix`, `width`, `next_index` are optional.
-- `[generated_entries]`: when present, auto-generated pairs are written to the referenced JSON file; the INI stays human-managed.
+- `[generated_entries]`: when present, auto-generated pairs are written to the referenced INI file; the main INI stays human-managed.
 
 ## Usage
 
@@ -55,7 +55,7 @@ file=generated-full.json
 ```
 
 - Omit `-Config` to use `./deannon.ini` automatically (errors if missing).
-- During anonymization, the INI (and, if configured, the generated JSON file) will be updated. Commit changes if you keep them in Git.
+- During anonymization, the INI (and, if configured, the generated auto-entry INI) will be updated. Commit changes if you keep them in Git.
 - Run with `-Verbose` for detailed direction/match logging.
 
 ## Tests
@@ -70,8 +70,8 @@ smokey --tests-dir tests.d
 
 The suite:
 - copies fixtures from `tests/testdata/`
-- runs `./deannon.ps1` once to anonymize (checking the generated JSON file for new pairs)
-- runs again to deanonymize and verifies both the text and the generated JSON snapshot remain unchanged
+- runs `./deannon.ps1` once to anonymize (checking the generated auto-entry INI for new pairs)
+- runs again to deanonymize and verifies both the text and the generated auto-entry snapshot remain unchanged
 
 ## Roadmap / Open Tasks
 
