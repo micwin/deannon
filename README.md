@@ -64,7 +64,6 @@ Smoke tests (Linux/macOS) ensure anonymize → deanonymize round trips:
 
 ```bash
 cd /home/micwin/projects/deannon
-mkdir -p tests.d/.smokey-state   # Smokey expects the dir to exist
 smokey --tests-dir tests.d
 ```
 
