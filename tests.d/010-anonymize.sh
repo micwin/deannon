@@ -18,6 +18,16 @@ if ! diff -u "$EXPECTED_ANON_PATH" "$INPUT_PATH"; then
     exit 1
 fi
 
+if grep -q 'ns-prod-alpha' "$CONFIG_PATH"; then
+    echo "Auto entries leaked into config.ini (ns-prod-alpha present)" >&2
+    exit 1
+fi
+
+if grep -q 'svc-228845' "$CONFIG_PATH"; then
+    echo "Auto entries leaked into config.ini (svc-228845 present)" >&2
+    exit 1
+fi
+
 if [[ -z "${AUTO_FILE:-}" ]]; then
     echo "State missing AUTO_FILE" >&2
     exit 1

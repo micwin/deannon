@@ -7,7 +7,7 @@ A PowerShell-based anonymizer/deanonymizer for structured and semi-structured te
 - **Automatic direction detection** uses existing `full.*` pairs to decide anonymize vs. deanonymize (only falls back to `direction_markers` if no full pair hits).
 - **Regex hints** (`hint.*`) can either run sequential counters (`width`/`next_index`) or mint random tokens (`randomize`/`random_charset`) and persist the results; `prefix`/`postfix` optionally wrap the generated value.
 - **Curated+generated pairs** always store the final anonymized token (including any brackets/prefixes), making deanonymization straightforward.
-- **External auto-entry store** keeps generated mappings in a dedicated INI via `[global] generated_entries_file=…`; the auto file uses the same format and is recreated on every successful run.
+- **External auto-entry store** keeps generated mappings in a dedicated INI via `[global] generated_entries_file=…`; when configured, only that file receives new `full.*` entries while the main config merely tracks counters/metadata.
 - **Two-stage safety**: mixed original/anonymized tokens trigger warnings and skip the file; optional verbose output shows which pair matched.
 - **Smokey smoke tests** verify anonymize/deanonymize round trips plus random hint and wrap scenarios.
 
@@ -49,7 +49,7 @@ prefix=[[
 postfix=]]
 ```
 
-- `[global]`: points to the external auto-entry INI. The file is created if missing and re-written using the same INI format as the main config.
+- `[global]`: points to the external auto-entry INI. The file is created if missing, re-written on every successful run, and becomes the sole destination for generated `full.*` entries.
 - `direction_markers` *(optional)*: strings that only occur in original texts; used only when no `full.*` hits exist.
 - `full.<name>`: fixed, case-insensitive replacements that work for both directions. Store the anonymized value exactly as it should appear (e.g., including `<< >>`).
 - `hint.<name>`: regex-based discovery. Either specify `width` + `next_index` for sequential IDs or `randomize` (+ optional `random_charset`, default `alnum`) for random IDs. Optional `prefix`/`postfix` wrap the generated payload before it is persisted as a `full.*` entry.
