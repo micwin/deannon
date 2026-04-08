@@ -32,10 +32,18 @@ if ! grep -Eq 'RND[[:alnum:]]{8}' "$INPUT_PATH"; then
     exit 1
 fi
 
-if [[ -f "$AUTO_PATH" ]] && grep -q 'original=svc-rand-1234' "$AUTO_PATH"; then
-    :
-else
-    echo "Generated entries file missing random mapping" >&2
+if [[ ! -f "$AUTO_PATH" ]]; then
+    echo "Generated entries file missing at $AUTO_PATH" >&2
+    exit 1
+fi
+
+if ! grep -q '^original=svc-rand-1234$' "$AUTO_PATH"; then
+    echo "Generated entries file missing mapping for svc-rand-1234" >&2
+    exit 1
+fi
+
+if ! grep -q '^original=svc-rand-5678$' "$AUTO_PATH"; then
+    echo "Generated entries file missing mapping for svc-rand-5678" >&2
     exit 1
 fi
 

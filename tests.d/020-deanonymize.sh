@@ -20,7 +20,7 @@ if [[ -z "${AUTO_AFTER_ANON:-}" || ! -f "$AUTO_AFTER_ANON" ]]; then
 fi
 
 pushd "$PROJECT_ROOT" >/dev/null
-./deannon.ps1 --config "$CONFIG_PATH" "$INPUT_PATH"
+./deannon.ps1 -Config "$CONFIG_PATH" "$INPUT_PATH"
 popd >/dev/null
 
 if ! diff -u "$ORIGINAL_PATH" "$INPUT_PATH"; then

@@ -10,7 +10,7 @@ fi
 source "$STATE_FILE"
 
 pushd "$PROJECT_ROOT" >/dev/null
-./deannon.ps1 --config "$CONFIG_PATH" "$INPUT_PATH"
+./deannon.ps1 -Config "$CONFIG_PATH" "$INPUT_PATH"
 popd >/dev/null
 
 if ! diff -u "$EXPECTED_ANON_PATH" "$INPUT_PATH"; then

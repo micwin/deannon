@@ -4,11 +4,12 @@ A PowerShell-based anonymizer/deanonymizer for structured and semi-structured te
 
 ## Highlights
 
-- **Automatic direction detection** based on existing `full.*` pairs (anonymize vs. deanonymize). Falls back to optional `direction_markers` when no full pair hits.
-- **Regex hints** (`hint.*`) discover new tokens, generate replacements (`prefix`, `width`, `next_index`), and fold them into `full.*` entries for future runs.
-- **External auto-entry store** to keep generated mappings separate from curated ones via `[global] generated_entries_file=generated-full.ini`.
+- **Automatic direction detection** uses existing `full.*` pairs to decide anonymize vs. deanonymize (only falls back to `direction_markers` if no full pair hits).
+- **Regex hints** (`hint.*`) can either run sequential counters (`prefix`/`width`/`next_index`) or mint random tokens (`random_length`/`random_charset`) and persist the results.
+- **Wrap-aware replacements** allow `wrap_prefix`/`wrap_postfix` on both full pairs and hints so anonymized values can be framed (e.g., `<<token>>`) without losing reversibility.
+- **External auto-entry store** keeps generated mappings in a dedicated INI via `[global] generated_entries_file=…`; the auto file uses the same format and is recreated on every successful run.
 - **Two-stage safety**: mixed original/anonymized tokens trigger warnings and skip the file; optional verbose output shows which pair matched.
-- **Smokey smoke tests** verify round-trip anonymize/deanonymize flows on sample fixtures.
+- **Smokey smoke tests** verify anonymize/deanonymize round trips plus random hint and wrap scenarios.
 
 ## Requirements
 
@@ -20,6 +21,9 @@ A PowerShell-based anonymizer/deanonymizer for structured and semi-structured te
 ## Configuration
 
 ```ini
+[global]
+generated_entries_file=generated-full.ini
+
 [direction_markers]
 original=io.metafence,de.micwin
 
@@ -27,26 +31,31 @@ original=io.metafence,de.micwin
 original=io.metafence
 anonymized=custA.example
 
+[full.mgmt-namespace]
+original=de.micwin.core
+anonymized=tenant-42.core
+wrap_prefix=<<
+wrap_postfix=>>
+
 [hint.namespaces]
 hint=ns-prod-[a-z0-9]+
 prefix=NSX
 width=3
 next_index=1
 
-[hint.metafence]
-hint=metafence(?=\.net)
-prefix=CARL
-width=3
-next_index=1
-
-[global]
-generated_entries_file=generated-full.ini
+[hint.random-services]
+hint=svc-rand-[0-9]{4}
+prefix=RND
+random_length=8
+random_charset=alnum
+wrap_prefix=[[
+wrap_postfix=]]
 ```
 
-- `direction_markers` *(optional)*: strings that only appear in original data; used if no `full` hits exist.
-- `full.<name>`: fixed replacements, case-insensitive, work in both directions.
-- `hint.<name>`: regex-based discovery. Provide at least `hint`; `prefix`, `width`, `next_index` are optional.
-- `[global].generated_entries_file`: when present, auto-generated pairs are written to the referenced INI file; the main INI stays human-managed.
+- `[global]`: points to the external auto-entry INI. The file is created if missing and re-written using the same INI format as the main config.
+- `direction_markers` *(optional)*: strings that only occur in original texts; used only when no `full.*` hits exist.
+- `full.<name>`: fixed, case-insensitive replacements that work for both directions. `wrap_prefix`/`wrap_postfix` (optional) inject delimiters around the anonymized value.
+- `hint.<name>`: regex-based discovery. Either specify `width` + `next_index` for sequential IDs or `random_length` (+ optional `random_charset`, default `alnum`) for random IDs. Hints can also define `wrap_prefix`/`wrap_postfix`; those values are stored alongside the generated auto entries.
 
 ## Usage
 
@@ -64,13 +73,14 @@ Smoke tests (Linux/macOS) ensure anonymize → deanonymize round trips:
 
 ```bash
 cd /home/micwin/projects/deannon
-smokey --tests-dir tests.d
+~/projects/smokey/smokey --tests-dir tests.d
 ```
 
-The suite:
+The Smokey suite:
 - copies fixtures from `tests/testdata/`
-- runs `./deannon.ps1` once to anonymize (checking the generated auto-entry INI for new pairs)
+- runs `./deannon.ps1` once to anonymize (checking / creating the generated auto-entry INI)
 - runs again to deanonymize and verifies both the text and the generated auto-entry snapshot remain unchanged
+- includes dedicated cases for random hints and wrapped replacements
 
 ## Roadmap / Open Tasks
 
