@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.2.7] - 2026-04-09
+## [0.2.8] - 2026-04-09
 ### Added
 - `deannon` prints its version (read from the `VERSION` file) at start-up.
 

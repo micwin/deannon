@@ -54,6 +54,19 @@ else
     echo "Changelog already contains entry for $VERSION"
 fi
 
+PS1_PATH="$ROOT/deannon.ps1"
+python3 - "$PS1_PATH" "$VERSION" <<'PY'
+import re, pathlib, sys
+path = pathlib.Path(sys.argv[1])
+version = sys.argv[2]
+text = path.read_text()
+pattern = r"(\$script:EmbeddedVersion = ')[^']*(')"
+new_text, count = re.subn(pattern, rf"\g<1>{version}\g<2>", text, count=1)
+if count == 0:
+    raise SystemExit("Failed to update embedded version in deannon.ps1")
+path.write_text(new_text)
+PY
+
 echo
 cat <<INSTRUCTIONS
 Next steps (manual):
