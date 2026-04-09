@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.7] - 2026-04-09
+### Added
+- `deannon` prints its version (read from the `VERSION` file) at start-up.
+
+### Fixed
+- Flattened `-File/-f` handling on Windows PowerShell so the script no longer emits `.Count` errors when the binder wraps file paths strangely.
+
 ## [0.2.6] - 2026-04-09
 ### Changed
 - CLI now mandates `-File/-f` for every input; positional arguments are no longer accepted. Smokey tests and docs were updated accordingly.
