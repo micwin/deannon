@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.13] - 2026-04-09
+### Changed
+- `Get-CountTrace` now falls back to `ICollection`/`IEnumerable` counting before trying to read a `.Count` property, so Windows PowerShell 5 can handle objects such as `PSCustomObject` results from include parsing.
+
+### Fixed
+- Include-heavy configs on Windows PowerShell no longer throw `count:C002`—the loop that reinserts child sections can enumerate objects regardless of how the shell wraps them.
+
+
 ## [0.2.12] - 2026-04-09
 ### Added
 - `-Verbose` now prints `[count:<id>] target/type` diagnostics before and after every `.Count` access so Windows PowerShell users can pinpoint which collection binding failed.
