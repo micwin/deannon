@@ -24,6 +24,7 @@ shopt -u nullglob
 # Prepare call to deannon.ps1
 CONFIG_PATH="$STATE_DIR/config.ini"
 INPUT_PATH="$STATE_DIR/input.json"
+INPUT_PATH_PRETTY="$STATE_DIR/input.pretty.json"
 GENERATED_PATH="$STATE_DIR/generated.ini"
 TENANT_PATH="$STATE_DIR/tenant.ini"
 
@@ -37,6 +38,9 @@ mv "$tmp_compact" "$INPUT_PATH"
 # compressed version embedded as JSON body
 BODY_PATH="$STATE_DIR/body.json"
 jq -cn --arg body "$(cat "$INPUT_PATH")" '{body:$body}' > "$BODY_PATH"
+
+cp $INPUT_PATH $INPUT_PATH_PRETTY
+cp "$BODY_PATH" "$INPUT_PATH"
 
 random_default_len=$(rg --no-filename --no-line-number --pcre2 '^randomize_default_length=(\d+)$' --replace '$1' "$CONFIG_PATH" || true)
 if [[ -z "$random_default_len" ]]; then
