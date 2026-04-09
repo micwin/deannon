@@ -1,0 +1,2 @@
+Primary service svc-1001 escalated to svc-1002.
+Follow-up references svc-1003 and svc-1004 for auditing.

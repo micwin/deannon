@@ -77,7 +77,7 @@ The Smokey suite:
 - copies fixtures from `tests/testdata/`
 - runs `./deannon.ps1` once to anonymize (checking / creating the generated auto-entry INI)
 - runs again to deanonymize and verifies both the text and the generated auto-entry snapshot remain unchanged
-- includes dedicated cases for random hints and wrapped replacements
+- includes dedicated cases for random hints, wrapped replacements, and a guard run that ensures a second invocation switches to deanonymization instead of anonymizing again
 
 ## Roadmap / Open Tasks
 
