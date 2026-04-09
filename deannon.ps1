@@ -21,19 +21,24 @@ function Read-IniSections {
     }
 
     $stack = New-Object System.Collections.Generic.List[string]
-    $sectionList = Parse-IniSections -Path $Path -Stack $stack
+    $orderList = New-Object System.Collections.Generic.List[pscustomobject]
+    $sectionList = Parse-IniSections -Path $Path -Stack $stack -OrderList $orderList
     $sections = [ordered]@{}
     foreach ($section in $sectionList) {
         $sections[$section.name] = $section.data
     }
 
-    return $sections
+    return [pscustomobject]@{
+        map = $sections
+        order = $orderList
+    }
 }
 
 function Parse-IniSections {
     param(
         [string]$Path,
-        [System.Collections.Generic.List[string]]$Stack
+        [System.Collections.Generic.List[string]]$Stack,
+        [System.Collections.Generic.List[pscustomobject]]$OrderList
     )
 
     $resolved = Resolve-Path -Path $Path -ErrorAction Stop | Select-Object -First 1 -ExpandProperty ProviderPath
@@ -54,7 +59,8 @@ function Parse-IniSections {
             [System.Collections.Generic.List[object]]$List,
             [string]$Name,
             [hashtable]$Data,
-            [string]$Source
+            [string]$Source,
+            [System.Collections.Generic.List[pscustomobject]]$OrderRef
         )
         if ([string]::IsNullOrEmpty($Name)) { return }
         $List.Add([pscustomobject]@{
@@ -62,6 +68,12 @@ function Parse-IniSections {
             data = $Data
             source = $Source
         })
+        if ($OrderRef) {
+            $OrderRef.Add([pscustomobject]@{
+                kind = 'section'
+                name = $Name
+            })
+        }
     }
 
     foreach ($line in $lines) {
@@ -70,7 +82,7 @@ function Parse-IniSections {
             continue
         }
         if ($trimmed.StartsWith('[') -and $trimmed.EndsWith(']')) {
-            Add-Section -List $sections -Name $currentName -Data $currentData -Source $resolved
+            Add-Section -List $sections -Name $currentName -Data $currentData -Source $resolved -OrderRef $OrderList
             $currentName = $trimmed.Substring(1, $trimmed.Length - 2).Trim()
             $currentData = [ordered]@{}
             continue
@@ -83,19 +95,20 @@ function Parse-IniSections {
         $value = $line.Substring($splitIndex + 1).Trim()
         $currentData[$key] = $value
     }
-    Add-Section -List $sections -Name $currentName -Data $currentData -Source $resolved
+    Add-Section -List $sections -Name $currentName -Data $currentData -Source $resolved -OrderRef $OrderList
 
     for ($i = 0; $i -lt $sections.Count; ) {
         $entry = $sections[$i]
         if ($entry.name -like 'include.*') {
             $includeName = if ($entry.name.Length -gt 8) { $entry.name.Substring(8) } else { '' }
-            $includeFile = $null
-            if ($entry.data.Contains('include_file')) {
-                $includeFile = $entry.data['include_file']
-            } elseif (-not [string]::IsNullOrEmpty($includeName)) {
-                $includeFile = "$includeName.ini"
-            } else {
-                throw "Include section '$($entry.name)' missing include_file and include name."
+            $rawIncludeFile = if ($entry.data.Contains('include_file')) { $entry.data['include_file'] } else { $null }
+            $includeFile = $rawIncludeFile
+            if (-not $includeFile) {
+                if (-not [string]::IsNullOrEmpty($includeName)) {
+                    $includeFile = "$includeName.ini"
+                } else {
+                    throw "Include section '$($entry.name)' missing include_file and include name."
+                }
             }
             if ([string]::IsNullOrWhiteSpace($includeFile)) {
                 throw "Include section '$($entry.name)' has empty include_file."
@@ -108,7 +121,14 @@ function Parse-IniSections {
             if (-not (Test-Path -Path $resolvedInclude -PathType Leaf)) {
                 throw "Included config '$resolvedInclude' not found (referenced by '$($entry.name)')."
             }
-            $childSections = Parse-IniSections -Path $resolvedInclude -Stack $Stack
+            $OrderList.Add([pscustomobject]@{
+                kind = 'include'
+                name = $entry.name
+                include_file = $rawIncludeFile
+                implicit = -not [bool]$rawIncludeFile
+                resolved_path = $resolvedInclude
+            })
+            $childSections = Parse-IniSections -Path $resolvedInclude -Stack $Stack -OrderList $OrderList
             $sections.RemoveAt($i)
             for ($j = $childSections.Count - 1; $j -ge 0; $j--) {
                 $sections.Insert($i, $childSections[$j])
@@ -217,6 +237,12 @@ function Add-HintFullPair {
         from_config = -not $isAutoTarget
     }
     $Config.pairs.full = @($Config.pairs.full + $pair)
+    if ($Config.PSObject.Properties.Match('section_order')) {
+        $Config.section_order += [pscustomobject]@{
+            kind = 'section'
+            name = "full.$name"
+        }
+    }
     $script:AutoGeneratedPairs += [pscustomobject]@{
         name = $name
         original = $OriginalValue
@@ -274,7 +300,8 @@ function Convert-HintAssignmentsToFull {
 function Get-ConfigObject {
     param([string]$Path)
 
-    $sections = Read-IniSections -Path $Path
+    $sectionResult = Read-IniSections -Path $Path
+    $sections = $sectionResult.map
     $config = [pscustomobject]@{
         direction_markers = [pscustomobject]@{ original = @() }
         pairs = [pscustomobject]@{
@@ -283,6 +310,8 @@ function Get-ConfigObject {
         }
         generated_pairs_file = $null
         generated_pairs_file_path = $null
+        includes = @()
+        section_order = @()
     }
 
     if ($sections.Keys -contains 'direction_markers') {
@@ -341,6 +370,28 @@ function Get-ConfigObject {
         }
     }
 
+    foreach ($orderEntry in $sectionResult.order) {
+        switch ($orderEntry.kind) {
+            'include' {
+                $config.includes += [pscustomobject]@{
+                    name = $orderEntry.name
+                    include_file = $orderEntry.include_file
+                    implicit = $orderEntry.implicit
+                }
+                $config.section_order += [pscustomobject]@{
+                    kind = 'include'
+                    name = $orderEntry.name
+                }
+            }
+            Default {
+                $config.section_order += [pscustomobject]@{
+                    kind = 'section'
+                    name = $orderEntry.name
+                }
+            }
+        }
+    }
+
     Convert-HintAssignmentsToFull -Config $config
     return $config
 }
@@ -368,6 +419,12 @@ function Ensure-ConfigShape {
 
     if (-not $Config.PSObject.Properties.Match('generated_pairs_file_path')) {
         $Config | Add-Member -NotePropertyName 'generated_pairs_file_path' -NotePropertyValue $null
+    }
+    if (-not $Config.PSObject.Properties.Match('includes')) {
+        $Config | Add-Member -NotePropertyName 'includes' -NotePropertyValue @()
+    }
+    if (-not $Config.PSObject.Properties.Match('section_order')) {
+        $Config | Add-Member -NotePropertyName 'section_order' -NotePropertyValue @()
     }
 
     foreach ($hint in $Config.pairs.hints) {
@@ -400,44 +457,126 @@ function Save-ConfigObject {
         $lines.Add('')
     }
 
-    $markerLine = if ($Config.direction_markers.original) { $Config.direction_markers.original -join ',' } else { '' }
-    $lines.Add('[direction_markers]')
-    $lines.Add("original=$markerLine")
-    $lines.Add('')
-
+    $sectionOrder = if ($Config.PSObject.Properties.Match('section_order')) { $Config.section_order } else { @() }
+    $includesByName = @{}
+    foreach ($inc in $Config.includes) {
+        $includesByName[$inc.name] = $inc
+    }
+    $fullMap = @{}
     foreach ($pair in $Config.pairs.full) {
-        $name = if ($pair.name) { $pair.name } else { 'entry' }
+        $n = if ($pair.name) { $pair.name } else { 'entry' }
         $isAuto = $false
         if ($pair.PSObject.Properties.Match('from_auto')) {
             $isAuto = [bool]$pair.from_auto
         }
-        if (-not ($Config.generated_pairs_file_path -and $isAuto)) {
-            $lines.Add("[full.$name]")
-            $lines.Add("original=$($pair.original)")
-            $lines.Add("anonymized=$($pair.anonymized)")
-            $lines.Add('')
+        if ($Config.generated_pairs_file_path -and $isAuto) {
+            continue
+        }
+        $fullMap[$n] = $pair
+    }
+    $hintMap = @{}
+    foreach ($hint in $Config.pairs.hints) {
+        $n = if ($hint.name) { $hint.name } else { 'entry' }
+        $hintMap[$n] = $hint
+    }
+    $directionWritten = $false
+
+    function Write-DirectionSection {
+        param(
+            [System.Collections.Generic.List[string]]$Target,
+            [pscustomobject]$Config
+        )
+        $markerLine = if ($Config.direction_markers.original) { $Config.direction_markers.original -join ',' } else { '' }
+        $Target.Add('[direction_markers]')
+        $Target.Add("original=$markerLine")
+        $Target.Add('')
+    }
+
+    function Write-FullSection {
+        param(
+            [System.Collections.Generic.List[string]]$Target,
+            $Pair,
+            [string]$Name
+        )
+        $Target.Add("[full.$Name]")
+        $Target.Add("original=$($Pair.original)")
+        $Target.Add("anonymized=$($Pair.anonymized)")
+        $Target.Add('')
+    }
+
+    function Write-HintSection {
+        param(
+            [System.Collections.Generic.List[string]]$Target,
+            $Hint,
+            [string]$Name
+        )
+        $Target.Add("[hint.$Name]")
+        $Target.Add("hint=$($Hint.hint)")
+        if ($Hint.prefix) { $Target.Add("prefix=$($Hint.prefix)") }
+        if ($Hint.postfix) { $Target.Add("postfix=$($Hint.postfix)") }
+        if ($Hint.randomize) {
+            $Target.Add("randomize=$($Hint.randomize)")
+            if ($Hint.random_charset) { $Target.Add("random_charset=$($Hint.random_charset)") }
+        } else {
+            $widthValue = if ($Hint.width) { $Hint.width } else { 4 }
+            $Target.Add("width=$widthValue")
+            $nextValue = if ($Hint.next_index) { $Hint.next_index } else { 1 }
+            $Target.Add("next_index=$nextValue")
+            if ($Hint.random_charset) {
+                $Target.Add("random_charset=$($Hint.random_charset)")
+            }
+        }
+        $Target.Add('')
+    }
+
+    foreach ($entry in $sectionOrder) {
+        switch ($entry.kind) {
+            'include' {
+                if ($includesByName.ContainsKey($entry.name)) {
+                    $inc = $includesByName[$entry.name]
+                    $lines.Add("[$($entry.name)]")
+                    if (-not $inc.implicit -and $inc.include_file) {
+                        $lines.Add("include_file=$($inc.include_file)")
+                    }
+                    $lines.Add('')
+                }
+            }
+            Default {
+                $name = $entry.name
+                if ($name -eq 'direction_markers') {
+                    if (-not $directionWritten) {
+                        Write-DirectionSection -Target $lines -Config $Config
+                        $directionWritten = $true
+                    }
+                }
+                elseif ($name -like 'full.*') {
+                    $key = $name.Substring(5)
+                    if ($fullMap.ContainsKey($key)) {
+                        Write-FullSection -Target $lines -Pair $fullMap[$key] -Name $key
+                        $null = $fullMap.Remove($key)
+                    }
+                }
+                elseif ($name -like 'hint.*') {
+                    $key = $name.Substring(5)
+                    if ($hintMap.ContainsKey($key)) {
+                        Write-HintSection -Target $lines -Hint $hintMap[$key] -Name $key
+                        $null = $hintMap.Remove($key)
+                    }
+                }
+            }
         }
     }
 
-    foreach ($hint in $Config.pairs.hints) {
-        $name = if ($hint.name) { $hint.name } else { 'entry' }
-        $lines.Add("[hint.$name]")
-        $lines.Add("hint=$($hint.hint)")
-        if ($hint.prefix) { $lines.Add("prefix=$($hint.prefix)") }
-        if ($hint.postfix) { $lines.Add("postfix=$($hint.postfix)") }
-        if ($hint.randomize) {
-            $lines.Add("randomize=$($hint.randomize)")
-            if ($hint.random_charset) { $lines.Add("random_charset=$($hint.random_charset)") }
-        } else {
-            $widthValue = if ($hint.width) { $hint.width } else { 4 }
-            $lines.Add("width=$widthValue")
-            $nextValue = if ($hint.next_index) { $hint.next_index } else { 1 }
-            $lines.Add("next_index=$nextValue")
-        }
-        if (-not $hint.randomize -and $hint.random_charset) {
-            $lines.Add("random_charset=$($hint.random_charset)")
-        }
-        $lines.Add('')
+    if (-not $directionWritten) {
+        Write-DirectionSection -Target $lines -Config $Config
+    }
+
+    foreach ($key in ($fullMap.Keys | Sort-Object)) {
+        Write-FullSection -Target $lines -Pair $fullMap[$key] -Name $key
+    }
+
+    foreach ($key in ($hintMap.Keys | Sort-Object)) {
+        Write-HintSection -Target $lines -Hint $hintMap[$key] -Name $key
     }
 
     $content = ($lines -join [Environment]::NewLine).TrimEnd()
@@ -719,11 +858,12 @@ if ($configObject.generated_pairs_file) {
             throw "Unable to create generated entries file '$autoFilePath': $($_.Exception.Message)"
         }
     }
-    $sections = @{}
+    $sections = [ordered]@{}
     try {
         $rawAuto = Get-Content -Path $autoFilePath -Raw
         if (-not [string]::IsNullOrWhiteSpace($rawAuto)) {
-            $sections = Read-IniSections -Path $autoFilePath
+            $autoResult = Read-IniSections -Path $autoFilePath
+            $sections = $autoResult.map
         }
     } catch {
         throw "Unable to read generated entries file '$autoFilePath': $($_.Exception.Message)"
