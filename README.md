@@ -7,6 +7,7 @@ A PowerShell-based anonymizer/deanonymizer for structured and semi-structured te
 - **Automatic direction detection** uses existing `full.*` pairs to decide anonymize vs. deanonymize (only falls back to `direction_markers` if no full pair hits).
 - **Regex hints** (`hint.*`) can either run sequential counters (`width`/`next_index`) or mint random tokens (`randomize`/`random_charset`) and persist the results; `prefix`/`postfix` optionally wrap the generated value.
 - **Curated+generated pairs** always store the final anonymized token (including any brackets/prefixes), making deanonymization straightforward.
+- **Config includes** (`[include.*]`) let you split tenant-specific rules into separate INIs and pull them in at arbitrary positions.
 - **External auto-entry store** keeps generated mappings in a dedicated INI via `[global] generated_entries_file=…`; when configured, only that file receives new `full.*` entries while the main config merely tracks counters/metadata.
 - **Two-stage safety**: mixed original/anonymized tokens trigger warnings and skip the file; optional verbose output shows which pair matched.
 - **Smokey smoke tests** verify anonymize/deanonymize round trips plus random hint and wrap scenarios.
@@ -47,12 +48,19 @@ randomize=8
 random_charset=alnum
 prefix=[[
 postfix=]]
+
+[include.tenant-eu]
+include_file=tenant-eu.ini
+
+[include.tenant-us]
+; no include_file -> looks for tenant-us.ini next to the config
 ```
 
 - `[global]`: points to the external auto-entry INI. The file is created if missing, re-written on every successful run, and becomes the sole destination for generated `full.*` entries.
 - `direction_markers` *(optional)*: strings that only occur in original texts; used only when no `full.*` hits exist.
 - `full.<name>`: fixed, case-insensitive replacements that work for both directions. Store the anonymized value exactly as it should appear (e.g., including `<< >>`).
 - `hint.<name>`: regex-based discovery. Either specify `width` + `next_index` for sequential IDs or `randomize` (+ optional `random_charset`, default `alnum`) for random IDs. Optional `prefix`/`postfix` wrap the generated payload before it is persisted as a `full.*` entry.
+- `include.<name>`: inline include. Provide `include_file=…` or omit it to fall back to `<name>.ini`. The referenced file is resolved relative to the current config unless you supply an absolute path. Include blocks can appear anywhere; their sections are injected at that exact position, and recursive loops are rejected.
 
 ## Usage
 
@@ -74,10 +82,10 @@ cd /home/micwin/projects/deannon
 ```
 
 The Smokey suite:
-- copies fixtures from `tests/testdata/`
+- copies fixtures from each numbered directory under `tests.d/`
 - runs `./deannon.ps1` once to anonymize (checking / creating the generated auto-entry INI)
 - runs again to deanonymize and verifies both the text and the generated auto-entry snapshot remain unchanged
-- includes dedicated cases for random hints, wrapped replacements, and a guard run that ensures a second invocation switches to deanonymization instead of anonymizing again
+- includes dedicated cases for random hints, wrapped replacements, include directives (explicit file + implicit `<name>.ini`), and a guard run that ensures a second invocation switches to deanonymization instead of anonymizing again
 
 ## Roadmap / Open Tasks
 
