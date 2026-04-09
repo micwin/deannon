@@ -1,20 +1,19 @@
 #!/usr/bin/env bash
-# 030-random-hints: run a dedicated config that exercises random token
-# generation and ensures mappings are persisted externally.
+# 030-random-hints: verify random replacement support and external auto-store.
 set -euo pipefail
 
 : "${DEANNON_PS1:?}"
-: "${TESTDATA_DIR:?TESTDATA_DIR missing}"
 : "${SMOKEY_STATE_DIR:?}"
+: "${SMOKEY_TEST_DIR:?}"
 
-RANDOM_DIR="${SMOKEY_STATE_DIR}/random"
-mkdir -p "$RANDOM_DIR"
-CONFIG_PATH="$RANDOM_DIR/random-config.ini"
-INPUT_PATH="$RANDOM_DIR/random-input.txt"
-AUTO_PATH="$RANDOM_DIR/random-generated.ini"
+STATE_DIR="${SMOKEY_STATE_DIR}/random"
+mkdir -p "$STATE_DIR"
+CONFIG_PATH="$STATE_DIR/random-config.ini"
+INPUT_PATH="$STATE_DIR/random-input.txt"
+AUTO_PATH="$STATE_DIR/random-generated.ini"
 
-cp "$TESTDATA_DIR/random-config.ini" "$CONFIG_PATH"
-cp "$TESTDATA_DIR/random-input.txt" "$INPUT_PATH"
+cp "$SMOKEY_TEST_DIR/random-config.ini" "$CONFIG_PATH"
+cp "$SMOKEY_TEST_DIR/random-input.txt" "$INPUT_PATH"
 
 if pwsh "$DEANNON_PS1" -Config "$CONFIG_PATH" "$INPUT_PATH"; then
     :
@@ -48,6 +47,4 @@ if ! grep -q '^original=svc-rand-5678$' "$AUTO_PATH"; then
     exit 1
 fi
 
-cat <<INFO
-RANDOM_HINTS_OK=1
-INFO
+echo "RANDOM_HINTS_OK=1"
