@@ -9,9 +9,9 @@ if ! command -v pwsh >/dev/null 2>&1; then
 fi
 
 : "${PROJECT_ROOT:?PROJECT_ROOT missing (check tests.d/env.preseed)}"
-: "${TESTDATA_DIR:=${PROJECT_ROOT}/tests/testdata}"
 : "${DEANNON_PS1:?DEANNON_PS1 missing (check tests.d/env.preseed)}"
 : "${SMOKEY_STATE_DIR:?SMOKEY_STATE_DIR is required}"
+: "${SMOKEY_TEST_DIR:?SMOKEY_TEST_DIR is required}"
 
 WORK_DIR="${SMOKEY_STATE_DIR}/main"
 mkdir -p "$WORK_DIR"
@@ -22,10 +22,10 @@ ORIGINAL_PATH="$WORK_DIR/original.txt"
 EXPECTED_ANON_PATH="$WORK_DIR/expected-anonymized.txt"
 AUTO_FILE="$WORK_DIR/generated-full.ini"
 
-cp "$TESTDATA_DIR/config.ini" "$CONFIG_PATH"
-cp "$TESTDATA_DIR/original.txt" "$ORIGINAL_PATH"
+cp "$SMOKEY_TEST_DIR/config.ini" "$CONFIG_PATH"
+cp "$SMOKEY_TEST_DIR/original.txt" "$ORIGINAL_PATH"
 cp "$ORIGINAL_PATH" "$INPUT_PATH"
-cp "$TESTDATA_DIR/expected-anonymized.txt" "$EXPECTED_ANON_PATH"
+cp "$SMOKEY_TEST_DIR/expected-anonymized.txt" "$EXPECTED_ANON_PATH"
 : > "$AUTO_FILE"
 
 export WORK_DIR CONFIG_PATH INPUT_PATH ORIGINAL_PATH EXPECTED_ANON_PATH AUTO_FILE
