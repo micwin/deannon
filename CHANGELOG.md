@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.6] - 2026-04-09
+### Changed
+- CLI now mandates `-File/-f` for every input; positional arguments are no longer accepted. Smokey tests and docs were updated accordingly.
+
+### Fixed
+- Resolved an additional PowerShell quirk where `$Files` could be bound as a scalar and lacked `.Count`, triggering runtime errors.
+
+
 ## [0.2.5] - 2026-04-09
 ### Changed
 - CLI now requires explicit `-File/-f` arguments for every input; positional arguments are no longer interpreted as files. This removes ambiguity with the `-Config` parameter.
