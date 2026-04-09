@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.2.16] - 2026-04-09
+### Added
+- Describe new features.
+
+### Changed
+- Describe behavioural changes.
+
+### Fixed
+- Describe bug fixes.
+
+
 ## [0.2.15] - 2026-04-09
 ### Added
 - `assert_file_matches` now accepts an optional count argument so Smokey tests can check exact match totals.
