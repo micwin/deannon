@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.2.11] - 2026-04-09
+### Fixed
+- Made `-File/-f` optional again so `-Status` can run without prompting for input files.
+
 ## [0.2.10] - 2026-04-09
 ### Fixed
 - Restored Windows PowerShell 5 compatibility by replacing the ternary operator in verbose logging.
