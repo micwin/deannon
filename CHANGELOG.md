@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.2.12] - 2026-04-09
+### Added
+- `-Verbose` now prints `[count:<id>] target/type` diagnostics before and after every `.Count` access so Windows PowerShell users can pinpoint which collection binding failed.
+
+### Changed
+- All `.Count` reads flow through a central helper that preserves the old behavior but rethrows with contextual `count:<id>` error messages when PowerShell refuses to expose the property.
+
+### Fixed
+- Include processing with single-section child configs keeps working while the new instrumentation is active, ensuring existing tests and users are unaffected by the debug traces.
+
+
 ## [0.2.11] - 2026-04-09
 ### Fixed
 - Made `-File/-f` optional again so `-Status` can run without prompting for input files.
