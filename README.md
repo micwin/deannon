@@ -61,6 +61,7 @@ include_file=tenant-eu.ini
 - `full.<name>`: fixed, case-insensitive replacements that work for both directions. Store the anonymized value exactly as it should appear (e.g., including `<< >>`).
 - `hint.<name>`: regex-based discovery. Either specify `width` + `next_index` for sequential IDs or `randomize` (+ optional `random_charset`, default `alnum`) for random IDs. Optional `prefix`/`postfix` wrap the generated payload before it is persisted as a `full.*` entry.
 - `include.<name>`: inline include. Provide `include_file=…` or omit it to fall back to `<name>.ini`. The referenced file is resolved relative to the current config unless you supply an absolute path. Include blocks can appear anywhere; their sections are injected at that exact position, and recursive loops are rejected.
+- Add `disabled=true` (or `enabled=false`) to any `full.*`, `hint.*`, or `include.*` section to keep it in the file while preventing it from applying; even renamed/unknown sections such as `[0full.foo]` are preserved verbatim during rewrites.
 
 ## Usage
 

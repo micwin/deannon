@@ -113,6 +113,7 @@ function Parse-IniSections {
             if ([string]::IsNullOrWhiteSpace($includeFile)) {
                 throw "Include section '$($entry.name)' has empty include_file."
             }
+            $sectionDisabled = Get-SectionDisabledFlag -Section $entry.data
             $resolvedInclude = if ([System.IO.Path]::IsPathRooted($includeFile)) {
                 [System.IO.Path]::GetFullPath($includeFile)
             } else {
@@ -127,9 +128,13 @@ function Parse-IniSections {
                 include_file = $rawIncludeFile
                 implicit = -not [bool]$rawIncludeFile
                 resolved_path = $resolvedInclude
+                disabled = $sectionDisabled
             })
-            $childSections = Parse-IniSections -Path $resolvedInclude -Stack $Stack -OrderList $OrderList
             $sections.RemoveAt($i)
+            if ($sectionDisabled) {
+                continue
+            }
+            $childSections = Parse-IniSections -Path $resolvedInclude -Stack $Stack -OrderList $OrderList
             for ($j = $childSections.Count - 1; $j -ge 0; $j--) {
                 $sections.Insert($i, $childSections[$j])
             }
@@ -152,6 +157,52 @@ function ConvertTo-List {
     return $Value.Split(',', [System.StringSplitOptions]::RemoveEmptyEntries) |
         ForEach-Object { $_.Trim() } |
         Where-Object { $_ -ne '' }
+}
+
+function ConvertTo-BooleanValue {
+    param([string]$Value)
+
+    if ($null -eq $Value) {
+        return $false
+    }
+    $text = $Value.ToString().Trim().ToLowerInvariant()
+    if ($text -eq '') { return $false }
+    switch ($text) {
+        'true' { return $true }
+        '1' { return $true }
+        'yes' { return $true }
+        'on' { return $true }
+        'false' { return $false }
+        '0' { return $false }
+        'no' { return $false }
+        'off' { return $false }
+        default { return $false }
+    }
+}
+
+function Get-SectionDisabledFlag {
+    param([hashtable]$Section)
+
+    if (-not $Section) { return $false }
+    if ($Section.Contains('enabled')) {
+        $enabled = ConvertTo-BooleanValue -Value $Section['enabled']
+        return -not $enabled
+    }
+    if ($Section.Contains('disabled')) {
+        return ConvertTo-BooleanValue -Value $Section['disabled']
+    }
+    return $false
+}
+
+function Test-ObjectDisabled {
+    param($Object)
+
+    if (-not $Object) { return $false }
+    $psobj = $Object.PSObject
+    if (-not $psobj) { return $false }
+    $property = $psobj.Properties['disabled']
+    if ($null -eq $property) { return $false }
+    return [bool]$property.Value
 }
 
 function Parse-Assignments {
@@ -235,6 +286,7 @@ function Add-HintFullPair {
         anonymized = $AnonymizedValue
         from_auto = $isAutoTarget
         from_config = -not $isAutoTarget
+        disabled = $false
     }
     $Config.pairs.full = @($Config.pairs.full + $pair)
     if ($Config.PSObject.Properties.Match('section_order')) {
@@ -312,6 +364,7 @@ function Get-ConfigObject {
         generated_pairs_file_path = $null
         includes = @()
         section_order = @()
+        extra_sections = @()
     }
 
     if ($sections.Keys -contains 'direction_markers') {
@@ -342,12 +395,14 @@ function Get-ConfigObject {
             $name = $sectionName.Substring(5)
             if (-not $name) { $name = 'entry' }
             $section = $sections[$sectionName]
+            $disabled = Get-SectionDisabledFlag -Section $section
             $config.pairs.full += [pscustomobject]@{
                 name = $name
                 original = if ($section.Keys -contains 'original') { $section['original'] } else { $null }
                 anonymized = if ($section.Keys -contains 'anonymized') { $section['anonymized'] } else { $null }
                 from_config = $true
                 from_auto = $false
+                disabled = $disabled
             }
         }
         elseif ($sectionName -like 'hint.*') {
@@ -355,6 +410,7 @@ function Get-ConfigObject {
             if (-not $name) { $name = 'entry' }
             $section = $sections[$sectionName]
             $assignments = if ($section.Keys -contains 'assignments') { Parse-Assignments -Value $section['assignments'] } else { @() }
+            $disabled = Get-SectionDisabledFlag -Section $section
             $hintObj = [pscustomobject]@{
                 name = $name
                 hint = if ($section.Keys -contains 'hint') { $section['hint'] } else { $null }
@@ -365,10 +421,22 @@ function Get-ConfigObject {
                 randomize = if ($section.Keys -contains 'randomize') { [int]$section['randomize'] } elseif ($section.Keys -contains 'random_length') { [int]$section['random_length'] } else { $null }
                 random_charset = if ($section.Keys -contains 'random_charset') { $section['random_charset'] } else { $null }
                 assignments = $assignments
+                disabled = $disabled
             }
             $config.pairs.hints += $hintObj
         }
     }
+
+    $extraSections = New-Object System.Collections.Generic.List[pscustomobject]
+    foreach ($sectionName in $sections.Keys) {
+        if ($sectionName -eq 'direction_markers' -or $sectionName -eq 'global') { continue }
+        if ($sectionName -like 'full.*' -or $sectionName -like 'hint.*' -or $sectionName -like 'include.*') { continue }
+        $extraSections.Add([pscustomobject]@{
+            name = $sectionName
+            data = $sections[$sectionName]
+        })
+    }
+    $config.extra_sections = $extraSections
 
     foreach ($orderEntry in $sectionResult.order) {
         switch ($orderEntry.kind) {
@@ -377,10 +445,14 @@ function Get-ConfigObject {
                     name = $orderEntry.name
                     include_file = $orderEntry.include_file
                     implicit = $orderEntry.implicit
+                    disabled = $orderEntry.disabled
                 }
                 $config.section_order += [pscustomobject]@{
                     kind = 'include'
                     name = $orderEntry.name
+                    include_file = $orderEntry.include_file
+                    implicit = $orderEntry.implicit
+                    disabled = $orderEntry.disabled
                 }
             }
             Default {
@@ -426,6 +498,9 @@ function Ensure-ConfigShape {
     if (-not $Config.PSObject.Properties.Match('section_order')) {
         $Config | Add-Member -NotePropertyName 'section_order' -NotePropertyValue @()
     }
+    if (-not $Config.PSObject.Properties.Match('extra_sections')) {
+        $Config | Add-Member -NotePropertyName 'extra_sections' -NotePropertyValue @()
+    }
 
     foreach ($hint in $Config.pairs.hints) {
         if (-not $hint.PSObject.Properties.Match('prefix')) {
@@ -460,7 +535,10 @@ function Save-ConfigObject {
     $sectionOrder = if ($Config.PSObject.Properties.Match('section_order')) { $Config.section_order } else { @() }
     $includesByName = @{}
     foreach ($inc in $Config.includes) {
-        $includesByName[$inc.name] = $inc
+        if (-not $includesByName.ContainsKey($inc.name)) {
+            $includesByName[$inc.name] = New-Object System.Collections.Generic.List[pscustomobject]
+        }
+        $includesByName[$inc.name].Add($inc)
     }
     $fullMap = @{}
     foreach ($pair in $Config.pairs.full) {
@@ -478,6 +556,15 @@ function Save-ConfigObject {
     foreach ($hint in $Config.pairs.hints) {
         $n = if ($hint.name) { $hint.name } else { 'entry' }
         $hintMap[$n] = $hint
+    }
+    $extraSectionsByName = @{}
+    if ($Config.PSObject.Properties.Match('extra_sections')) {
+        foreach ($extra in $Config.extra_sections) {
+            if (-not $extraSectionsByName.ContainsKey($extra.name)) {
+                $extraSectionsByName[$extra.name] = New-Object System.Collections.Generic.List[pscustomobject]
+            }
+            $extraSectionsByName[$extra.name].Add($extra)
+        }
     }
     $directionWritten = $false
 
@@ -501,6 +588,9 @@ function Save-ConfigObject {
         $Target.Add("[full.$Name]")
         $Target.Add("original=$($Pair.original)")
         $Target.Add("anonymized=$($Pair.anonymized)")
+        if (Test-ObjectDisabled $Pair) {
+            $Target.Add('disabled=true')
+        }
         $Target.Add('')
     }
 
@@ -526,15 +616,35 @@ function Save-ConfigObject {
                 $Target.Add("random_charset=$($Hint.random_charset)")
             }
         }
+        if (Test-ObjectDisabled $Hint) {
+            $Target.Add('disabled=true')
+        }
+        $Target.Add('')
+    }
+
+    function Write-GenericSection {
+        param(
+            [System.Collections.Generic.List[string]]$Target,
+            [string]$Name,
+            [hashtable]$Data
+        )
+        $Target.Add("[$Name]")
+        foreach ($key in $Data.Keys) {
+            $Target.Add("{0}={1}" -f $key, $Data[$key])
+        }
         $Target.Add('')
     }
 
     foreach ($entry in $sectionOrder) {
         switch ($entry.kind) {
             'include' {
-                if ($includesByName.ContainsKey($entry.name)) {
-                    $inc = $includesByName[$entry.name]
+                if ($includesByName.ContainsKey($entry.name) -and $includesByName[$entry.name].Count -gt 0) {
+                    $inc = $includesByName[$entry.name][0]
+                    $includesByName[$entry.name].RemoveAt(0)
                     $lines.Add("[$($entry.name)]")
+                    if (Test-ObjectDisabled $inc) {
+                        $lines.Add('disabled=true')
+                    }
                     if (-not $inc.implicit -and $inc.include_file) {
                         $lines.Add("include_file=$($inc.include_file)")
                     }
@@ -549,6 +659,9 @@ function Save-ConfigObject {
                         $directionWritten = $true
                     }
                 }
+                elseif ($name -eq 'global') {
+                    continue
+                }
                 elseif ($name -like 'full.*') {
                     $key = $name.Substring(5)
                     if ($fullMap.ContainsKey($key)) {
@@ -561,6 +674,13 @@ function Save-ConfigObject {
                     if ($hintMap.ContainsKey($key)) {
                         Write-HintSection -Target $lines -Hint $hintMap[$key] -Name $key
                         $null = $hintMap.Remove($key)
+                    }
+                }
+                else {
+                    if ($extraSectionsByName.ContainsKey($name) -and $extraSectionsByName[$name].Count -gt 0) {
+                        $sectionData = $extraSectionsByName[$name][0]
+                        $extraSectionsByName[$name].RemoveAt(0)
+                        Write-GenericSection -Target $lines -Name $name -Data $sectionData.data
                     }
                 }
             }
@@ -577,6 +697,12 @@ function Save-ConfigObject {
 
     foreach ($key in ($hintMap.Keys | Sort-Object)) {
         Write-HintSection -Target $lines -Hint $hintMap[$key] -Name $key
+    }
+
+    foreach ($name in $extraSectionsByName.Keys) {
+        foreach ($sectionData in $extraSectionsByName[$name]) {
+            Write-GenericSection -Target $lines -Name $name -Data $sectionData.data
+        }
     }
 
     $content = ($lines -join [Environment]::NewLine).TrimEnd()
@@ -621,6 +747,7 @@ function Detect-DirectionFromFullPairs {
 
     foreach ($pair in $Pairs) {
         if (-not $pair) { continue }
+        if (Test-ObjectDisabled $pair) { continue }
         if ($pair.original) {
             $pattern = [System.Text.RegularExpressions.Regex]::new([regex]::Escape($pair.original), [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
             if ($pattern.IsMatch($Text)) {
@@ -666,6 +793,9 @@ function Apply-FullReplacements {
 
     foreach ($pair in $Pairs) {
         if (-not ($pair.PSObject.Properties.Match('original') -and $pair.PSObject.Properties.Match('anonymized'))) {
+            continue
+        }
+        if (Test-ObjectDisabled $pair) {
             continue
         }
         $anonymizedValue = Get-AnonymizedOutputValue -Pair $pair
@@ -761,6 +891,7 @@ function Apply-HintAnonymization {
         $entry = $Hints[$i]
         if (-not $entry) { continue }
         if (-not $entry.PSObject.Properties.Match('hint')) { continue }
+        if (Test-ObjectDisabled $entry) { continue }
 
         $hintPattern = [string]$entry.hint
         if ([string]::IsNullOrWhiteSpace($hintPattern)) { continue }
@@ -894,7 +1025,7 @@ if ($configObject.generated_pairs_file) {
 $configChanged = $false
 $stats = @()
 
-foreach ($file in $Files) {
+:FileLoop foreach ($file in $Files) {
     if (-not (Test-Path -Path $file -PathType Leaf)) {
         Write-Warning "File '$file' not found. Skipping."
         continue
@@ -911,8 +1042,13 @@ foreach ($file in $Files) {
         'Ambiguous' {
             $origList = if ($directionInfo.OriginalMatches.Count -gt 0) { $directionInfo.OriginalMatches -join ', ' } else { 'n/a' }
             $anonList = if ($directionInfo.AnonymizedMatches.Count -gt 0) { $directionInfo.AnonymizedMatches -join ', ' } else { 'n/a' }
-            Write-Warning "File '$file' contains both original and anonymized tokens; skipping. Originals: $origList | Anonymized: $anonList"
-            continue
+            if ($configObject.generated_pairs_file_path) {
+                Write-Warning "File '$file' contains both original and anonymized tokens; assuming deanonymization due to generated entries. Originals: $origList | Anonymized: $anonList"
+                $direction = 'Anonymized'
+            } else {
+                Write-Warning "File '$file' contains both original and anonymized tokens; skipping. Originals: $origList | Anonymized: $anonList"
+                continue FileLoop
+            }
         }
         'Unknown' {
             $markerDirection = Get-DirectionFromMarkers -Text $text -Markers $configObject.direction_markers.original
@@ -920,7 +1056,7 @@ foreach ($file in $Files) {
                 $direction = 'Original'
             } else {
                 Write-Warning "Datei '$file' konnte keiner Richtung zugeordnet werden (keine passenden full-Paare)."
-                continue
+                continue FileLoop
             }
         }
         'None' {
@@ -929,7 +1065,7 @@ foreach ($file in $Files) {
                 $direction = 'Original'
             } else {
                 Write-Warning "Datei '$file' übersprungen: keine full-Paare konfiguriert und keine direction_markers gefunden."
-                continue
+                continue FileLoop
             }
         }
     }
@@ -952,7 +1088,7 @@ foreach ($file in $Files) {
         }
         Default {
             Write-Warning "Datei '$file' konnte nicht klassifiziert werden; überspringe."
-            continue
+            continue FileLoop
         }
     }
 
