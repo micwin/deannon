@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.2.10] - 2026-04-09
+### Fixed
+- Restored Windows PowerShell 5 compatibility by replacing the ternary operator in verbose logging.
+
 ## [0.2.9] - 2026-04-09
 ### Added
 - `-Status` command prints the current deannon version, PowerShell build, OS, and invocation mode.
