@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.14] - 2026-04-09
+### Changed
+- Include parsing now snapshots recursive results via `@( … )`, so even single-section tenant files arrive as proper arrays on Windows PowerShell.
+
+### Fixed
+- Resolved the lingering `count:C002` crash on Windows when an `[include.*]` block expands to exactly one section; the loop reinserting sections no longer touches a bare `PSCustomObject`.
+
+
 ## [0.2.13] - 2026-04-09
 ### Changed
 - `Get-CountTrace` now falls back to `ICollection`/`IEnumerable` counting before trying to read a `.Count` property, so Windows PowerShell 5 can handle objects such as `PSCustomObject` results from include parsing.
