@@ -72,6 +72,7 @@ include_file=tenant-eu.ini
 - Omit `-Config` to use `./deannon.ini` automatically (errors if missing).
 - During anonymization, the INI (and, if configured, the generated auto-entry INI) will be updated. Commit changes if you keep them in Git.
 - Run with `-Verbose` for detailed direction/match logging.
+- If a file still contains a mix of original and anonymized tokens *and* a `generated_entries_file` is configured, `deannon.ps1` assumes the file is anonymized and performs a deanonymization pass; without the generated entries file the mixed file is skipped with a warning so you can fix the source data.
 
 ## Tests
 

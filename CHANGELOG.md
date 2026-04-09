@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.2] - 2026-04-09
+### Added
+- `disabled=true` / `enabled=false` support on `full.*`, `hint.*`, and `include.*` blocks, plus the `025-disabled-sections` Smokey test to guard the behavior.
+
+### Changed
+- Config rewriting preserves include order, inline include metadata, and arbitrary/renamed sections; unknown blocks such as `[0full.*]` now survive untouched.
+- When a `generated_entries_file` exists, ambiguous files (containing both original and anonymized tokens) automatically switch into deanonymization mode so round-trips still succeed.
+- Smoke fixtures now live inside each numbered test directory; the shared `tests/testdata/` directory was removed.
+
+### Fixed
+- Includes, comments, and disabled sections are no longer dropped when saving the config or the generated auto-entry INI.
+
 ## [0.2.1] - 2026-04-09
 ### Added
 - `scripts/release.sh` helper to run Smokey, bump the version, seed the changelog, and list the manual tagging steps.
