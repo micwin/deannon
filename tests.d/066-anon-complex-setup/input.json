@@ -1,0 +1,37 @@
+[
+  {
+    "id": "svc-1001",
+    "domain": "alpha.example.internal",
+    "namespace": "svc.alpha",
+    "secret": "api-key-alpha",
+    "note": "Primary alpha tenant"
+  },
+  {
+    "id": "svc-1002",
+    "domain": "beta.example.internal",
+    "namespace": "svc.beta",
+    "secret": "api-key-beta",
+    "note": "Primary beta tenant"
+  },
+  {
+    "id": "svc-1003",
+    "domain": "gamma.example.internal",
+    "namespace": "svc.gamma",
+    "secret": "api-key-gamma",
+    "note": "Primary gamma tenant"
+  },
+  {
+    "id": "svc-1004",
+    "domain": "delta.example.internal",
+    "namespace": "svc.delta",
+    "secret": "api-key-delta",
+    "note": "Primary delta tenant"
+  },
+  {
+    "id": "svc-1005",
+    "domain": "epsilon.example.internal",
+    "namespace": "svc.epsilon",
+    "secret": "api-key-epsilon",
+    "note": "Primary epsilon tenant"
+  }
+]
