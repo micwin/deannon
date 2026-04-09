@@ -28,15 +28,15 @@ GENERATED_PATH="$STATE_DIR/generated.ini"
 TENANT_PATH="$STATE_DIR/tenant.ini"
 
 
-if [[ ! -f "$CONFIG_PATH" ]]; then
-    echo "Missing config.ini in $STATE_DIR" >&2
-    exit 1
-fi
-if [[ ! -f "$INPUT_PATH" ]]; then
-    echo "Missing input.json in $STATE_DIR" >&2
-    exit 1
-fi
 cp "$INPUT_PATH" "${INPUT_PATH}.orig"
+# compact the input before running deannon
+tmp_compact=$(mktemp)
+jq -c . "$INPUT_PATH" > "$tmp_compact"
+mv "$tmp_compact" "$INPUT_PATH"
+
+# compressed version embedded as JSON body
+BODY_PATH="$STATE_DIR/body.json"
+jq -cn --arg body "$(cat "$INPUT_PATH")" '{body:$body}' > "$BODY_PATH"
 
 random_default_len=$(rg --no-filename --no-line-number --pcre2 '^randomize_default_length=(\d+)$' --replace '$1' "$CONFIG_PATH" || true)
 if [[ -z "$random_default_len" ]]; then
@@ -52,7 +52,11 @@ popd >/dev/null
 echo annonimyzed input:
 cat "$INPUT_PATH"
 
-echo generated full entried
+echo body json:
+cat "$BODY_PATH"
+
+
+echo generated full entries
 cat "$GENERATED_PATH"
 
 # Assertions validating random

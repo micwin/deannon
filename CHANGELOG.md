@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.2.15] - 2026-04-09
+### Added
+- `assert_file_matches` now accepts an optional count argument so Smokey tests can check exact match totals.
+- New `066-anon-complex-setup` smoke fixtures cover overlapping include configs, random length defaults, and generic domain hints.
+
+### Changed
+- Hints falling back to random mode now respect `[global] randomize_default_length`; hints without `randomize`/`next_index` default to that value.
+- General domain hint regex scoped to `.internal` domains so full replacements (e.g., `undisclosed-*`) remain untouched.
+
+### Fixed
+- Delta domains without explicit full pairs are now anonymized via the general hint while tenant-specific mappings stay intact.
+
+
 ## [0.2.14] - 2026-04-09
 ### Changed
 - Include parsing now snapshots recursive results via `@( … )`, so even single-section tenant files arrive as proper arrays on Windows PowerShell.
