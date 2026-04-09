@@ -20,19 +20,59 @@ function Read-IniSections {
         throw "Config file '$Path' not found."
     }
 
+    $stack = New-Object System.Collections.Generic.List[string]
+    $sectionList = Parse-IniSections -Path $Path -Stack $stack
     $sections = [ordered]@{}
-    $current = ''
-    $lines = Get-Content -Path $Path -ErrorAction Stop
+    foreach ($section in $sectionList) {
+        $sections[$section.name] = $section.data
+    }
+
+    return $sections
+}
+
+function Parse-IniSections {
+    param(
+        [string]$Path,
+        [System.Collections.Generic.List[string]]$Stack
+    )
+
+    $resolved = Resolve-Path -Path $Path -ErrorAction Stop | Select-Object -First 1 -ExpandProperty ProviderPath
+    $resolved = [System.IO.Path]::GetFullPath($resolved)
+    if ($Stack.Contains($resolved)) {
+        throw "Include loop detected for '$resolved'."
+    }
+    $Stack.Add($resolved)
+
+    $baseDir = Split-Path -Path $resolved -Parent
+    $sections = New-Object System.Collections.Generic.List[object]
+    $currentName = ''
+    $currentData = [ordered]@{}
+    $lines = Get-Content -Path $resolved -ErrorAction Stop
+
+    function Add-Section {
+        param(
+            [System.Collections.Generic.List[object]]$List,
+            [string]$Name,
+            [hashtable]$Data,
+            [string]$Source
+        )
+        if ([string]::IsNullOrEmpty($Name)) { return }
+        $List.Add([pscustomobject]@{
+            name = $Name
+            data = $Data
+            source = $Source
+        })
+    }
+
     foreach ($line in $lines) {
         $trimmed = $line.Trim()
         if ($trimmed.Length -eq 0 -or $trimmed.StartsWith('#') -or $trimmed.StartsWith(';')) {
             continue
         }
         if ($trimmed.StartsWith('[') -and $trimmed.EndsWith(']')) {
-            $current = $trimmed.Substring(1, $trimmed.Length - 2).Trim()
-            if (-not $sections.Contains($current)) {
-                $sections[$current] = [ordered]@{}
-            }
+            Add-Section -List $sections -Name $currentName -Data $currentData -Source $resolved
+            $currentName = $trimmed.Substring(1, $trimmed.Length - 2).Trim()
+            $currentData = [ordered]@{}
             continue
         }
         $splitIndex = $line.IndexOf('=')
@@ -41,12 +81,44 @@ function Read-IniSections {
         }
         $key = $line.Substring(0, $splitIndex).Trim()
         $value = $line.Substring($splitIndex + 1).Trim()
-        if (-not $sections.Contains($current)) {
-            $sections[$current] = [ordered]@{}
+        $currentData[$key] = $value
+    }
+    Add-Section -List $sections -Name $currentName -Data $currentData -Source $resolved
+
+    for ($i = 0; $i -lt $sections.Count; ) {
+        $entry = $sections[$i]
+        if ($entry.name -like 'include.*') {
+            $includeName = if ($entry.name.Length -gt 8) { $entry.name.Substring(8) } else { '' }
+            $includeFile = $null
+            if ($entry.data.Contains('include_file')) {
+                $includeFile = $entry.data['include_file']
+            } elseif (-not [string]::IsNullOrEmpty($includeName)) {
+                $includeFile = "$includeName.ini"
+            } else {
+                throw "Include section '$($entry.name)' missing include_file and include name."
+            }
+            if ([string]::IsNullOrWhiteSpace($includeFile)) {
+                throw "Include section '$($entry.name)' has empty include_file."
+            }
+            $resolvedInclude = if ([System.IO.Path]::IsPathRooted($includeFile)) {
+                [System.IO.Path]::GetFullPath($includeFile)
+            } else {
+                [System.IO.Path]::GetFullPath((Join-Path -Path $baseDir -ChildPath $includeFile))
+            }
+            if (-not (Test-Path -Path $resolvedInclude -PathType Leaf)) {
+                throw "Included config '$resolvedInclude' not found (referenced by '$($entry.name)')."
+            }
+            $childSections = Parse-IniSections -Path $resolvedInclude -Stack $Stack
+            $sections.RemoveAt($i)
+            for ($j = $childSections.Count - 1; $j -ge 0; $j--) {
+                $sections.Insert($i, $childSections[$j])
+            }
+            continue
         }
-        $sections[$current][$key] = $value
+        $i++
     }
 
+    $Stack.RemoveAt($Stack.Count - 1)
     return $sections
 }
 
