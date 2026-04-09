@@ -1,17 +1,10 @@
 # Changelog
 
-## [0.2.4] - 2026-04-09
-### Added
-- Describe new features.
-
-### Changed
-- Describe behavioural changes.
-
+## [0.2.5] - 2026-04-09
 ### Fixed
-- Describe bug fixes.
+- Further hardened positional argument handling on Windows PowerShell: the script now falls back to `deannon.ini` and wraps `$Files` in an array even when PowerShell binds nothing, removing the "Count" property errors.
 
-
-## [0.2.3] - 2026-04-09
+## [0.2.4] - 2026-04-09
 ### Added
 - CLI convenience: when `-Config` is omitted, every positional argument is now treated as an input file. This makes `./deannon.ps1 output.json` work with the default config.
 
