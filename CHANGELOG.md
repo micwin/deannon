@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.2.4] - 2026-04-09
+### Added
+- Describe new features.
+
+### Changed
+- Describe behavioural changes.
+
+### Fixed
+- Describe bug fixes.
+
+
 ## [0.2.3] - 2026-04-09
 ### Added
 - CLI convenience: when `-Config` is omitted, every positional argument is now treated as an input file. This makes `./deannon.ps1 output.json` work with the default config.

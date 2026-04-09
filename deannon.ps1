@@ -959,7 +959,31 @@ function Apply-HintAnonymization {
     return ,@($result, $total)
 }
 
+function Get-DefaultConfigPath {
+    return Join-Path -Path (Get-Location) -ChildPath 'deannon.ini'
+}
+
 $providedConfigExplicit = $PSBoundParameters.ContainsKey('Config')
+$defaultConfigPath = Get-DefaultConfigPath
+
+if ($providedConfigExplicit) {
+    $ext = ''
+    try {
+        $ext = [System.IO.Path]::GetExtension($Config)
+    } catch {
+        $ext = ''
+    }
+    $extLower = if ($ext) { $ext.ToLowerInvariant() } else { '' }
+    $knownConfigExts = @('.ini', '.cfg', '.config', '.toml')
+    $defaultConfigExists = Test-Path -Path $defaultConfigPath -PathType Leaf
+    $looksLikeDataFile = ($extLower -ne '' -and -not ($knownConfigExts -contains $extLower))
+    if ($looksLikeDataFile -and $defaultConfigExists) {
+        $Files = @($Config) + @($Files)
+        $Config = $defaultConfigPath
+        $providedConfigExplicit = $false
+    }
+}
+
 if (-not $providedConfigExplicit -and $Config) {
     $Files = @($Config) + @($Files)
     $Config = $null
@@ -971,9 +995,8 @@ if ($Files.Count -eq 0) {
 }
 
 if (-not $Config) {
-    $defaultConfig = Join-Path -Path (Get-Location) -ChildPath 'deannon.ini'
-    if (Test-Path -Path $defaultConfig -PathType Leaf) {
-        $Config = $defaultConfig
+    if (Test-Path -Path $defaultConfigPath -PathType Leaf) {
+        $Config = $defaultConfigPath
     } else {
         throw 'Missing -Config/-c and no deannon.ini in the current directory.'
     }
