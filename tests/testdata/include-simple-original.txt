@@ -1,0 +1,1 @@
+Tenant2 endpoint tenant2.local ready.

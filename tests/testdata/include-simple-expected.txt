@@ -1,0 +1,1 @@
+Tenant2 endpoint customer-b.internal ready.
