@@ -20,7 +20,7 @@ cp "$SMOKEY_TEST_DIR/repeat-original.txt" "$ORIGINAL_PATH"
 cp "$SMOKEY_TEST_DIR/repeat-expected-anonymized.txt" "$EXPECTED_PATH"
 : > "$AUTO_PATH"
 
-run1=$(pwsh "$DEANNON_PS1" -Config "$CONFIG_PATH" "$INPUT_PATH")
+run1=$(pwsh "$DEANNON_PS1" -Config "$CONFIG_PATH" -File "$INPUT_PATH")
 if ! grep -q "anonymized replacements" <<<"$run1"; then
     echo "First run did not perform anonymization" >&2
     echo "$run1" >&2
@@ -32,7 +32,7 @@ if ! diff -u "$EXPECTED_PATH" "$INPUT_PATH"; then
     exit 1
 fi
 
-run2=$(pwsh "$DEANNON_PS1" -Config "$CONFIG_PATH" "$INPUT_PATH")
+run2=$(pwsh "$DEANNON_PS1" -Config "$CONFIG_PATH" -File "$INPUT_PATH")
 if ! grep -q "deanonymized replacements" <<<"$run2"; then
     echo "Second run failed to detect already anonymized content" >&2
     echo "$run2" >&2

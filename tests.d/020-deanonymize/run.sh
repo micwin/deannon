@@ -11,7 +11,7 @@ set -euo pipefail
 : "${AUTO_FILE:?Missing AUTO_FILE}"
 : "${AUTO_AFTER_ANON:?Missing AUTO_AFTER_ANON}"
 
-pwsh "$DEANNON_PS1" -Config "$CONFIG_PATH" "$INPUT_PATH"
+pwsh "$DEANNON_PS1" -Config "$CONFIG_PATH" -File "$INPUT_PATH"
 
 if ! diff -u "$ORIGINAL_PATH" "$INPUT_PATH"; then
     echo "Deanonymization did not restore the original file" >&2

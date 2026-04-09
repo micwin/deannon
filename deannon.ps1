@@ -5,8 +5,9 @@ param(
     [Alias('c')]
     [string]$Config,
 
-    [Parameter(Mandatory=$true, ValueFromRemainingArguments=$true)]
-    [string[]]$Files
+    [Parameter(Mandatory=$true)]
+    [Alias('f')]
+    [string[]]$File
 )
 
 Set-StrictMode -Version Latest
@@ -963,40 +964,14 @@ function Get-DefaultConfigPath {
     return Join-Path -Path (Get-Location) -ChildPath 'deannon.ini'
 }
 
+$filesParam = if ($null -eq $File) { @() } else { [array]$File }
+if ($filesParam.Length -eq 0) {
+    throw 'Please specify at least one input file via -File/-f.'
+}
+$Files = $filesParam
+
 $providedConfigExplicit = $PSBoundParameters.ContainsKey('Config')
 $defaultConfigPath = Get-DefaultConfigPath
-
-if ($providedConfigExplicit) {
-    $ext = ''
-    try {
-        $ext = [System.IO.Path]::GetExtension($Config)
-    } catch {
-        $ext = ''
-    }
-    $extLower = if ($ext) { $ext.ToLowerInvariant() } else { '' }
-    $knownConfigExts = @('.ini', '.cfg', '.config', '.toml')
-    $defaultConfigExists = Test-Path -Path $defaultConfigPath -PathType Leaf
-    $looksLikeDataFile = ($extLower -ne '' -and -not ($knownConfigExts -contains $extLower))
-    if ($looksLikeDataFile -and $defaultConfigExists) {
-        $Files = @($Config) + @($Files)
-        $Config = $defaultConfigPath
-        $providedConfigExplicit = $false
-    }
-}
-
-if (-not $providedConfigExplicit -and $Config) {
-    $Files = @($Config) + @($Files)
-    $Config = $null
-}
-
-if ($null -eq $Files) {
-    $Files = @()
-} else {
-    $Files = @($Files)
-}
-if ($Files.Count -eq 0) {
-    throw 'Please provide at least one file to process.'
-}
 
 if (-not $Config) {
     if (Test-Path -Path $defaultConfigPath -PathType Leaf) {

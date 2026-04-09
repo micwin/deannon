@@ -14,7 +14,7 @@ INPUT_PATH="$STATE_DIR/postfix-input.txt"
 cp "$SMOKEY_TEST_DIR/postfix-config.ini" "$CONFIG_PATH"
 cp "$SMOKEY_TEST_DIR/postfix-input.txt" "$INPUT_PATH"
 
-pwsh "$DEANNON_PS1" -Config "$CONFIG_PATH" "$INPUT_PATH"
+pwsh "$DEANNON_PS1" -Config "$CONFIG_PATH" -File "$INPUT_PATH"
 
 if ! grep -q 'Connecting to <<tenant-service>> endpoint\.' "$INPUT_PATH"; then
     echo "Postfix wrapping did not occur as expected" >&2

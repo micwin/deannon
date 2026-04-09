@@ -15,7 +15,7 @@ AUTO_PATH="$STATE_DIR/random-generated.ini"
 cp "$SMOKEY_TEST_DIR/random-config.ini" "$CONFIG_PATH"
 cp "$SMOKEY_TEST_DIR/random-input.txt" "$INPUT_PATH"
 
-if pwsh "$DEANNON_PS1" -Config "$CONFIG_PATH" "$INPUT_PATH"; then
+if pwsh "$DEANNON_PS1" -Config "$CONFIG_PATH" -File "$INPUT_PATH"; then
     :
 else
     echo "random hint anonymization failed" >&2

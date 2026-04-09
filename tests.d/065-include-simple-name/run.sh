@@ -19,7 +19,7 @@ cp "$SMOKEY_TEST_DIR/tenant2.ini" "$INC_PATH"
 cp "$SMOKEY_TEST_DIR/include-simple-original.txt" "$INPUT_PATH"
 cp "$SMOKEY_TEST_DIR/include-simple-expected.txt" "$EXPECTED_PATH"
 
-if pwsh "$DEANNON_PS1" -Config "$CONFIG_PATH" "$INPUT_PATH"; then
+if pwsh "$DEANNON_PS1" -Config "$CONFIG_PATH" -File "$INPUT_PATH"; then
     :
 else
     echo "Include (simple) anonymization run failed" >&2

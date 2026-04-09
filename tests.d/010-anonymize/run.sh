@@ -10,7 +10,7 @@ set -euo pipefail
 : "${AUTO_FILE:?Missing AUTO_FILE}"
 : "${SMOKEY_STATE_DIR:?}"
 
-pwsh "$DEANNON_PS1" -Config "$CONFIG_PATH" "$INPUT_PATH"
+pwsh "$DEANNON_PS1" -Config "$CONFIG_PATH" -File "$INPUT_PATH"
 
 if ! diff -u "$EXPECTED_ANON_PATH" "$INPUT_PATH"; then
     echo "Anonymized file does not match the expectation" >&2

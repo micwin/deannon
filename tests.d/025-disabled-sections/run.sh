@@ -16,7 +16,7 @@ cp "$SMOKEY_TEST_DIR/config.ini" "$CONFIG_PATH"
 cp "$SMOKEY_TEST_DIR/input.txt" "$INPUT_PATH"
 cp "$SMOKEY_TEST_DIR/expected.txt" "$EXPECTED_PATH"
 
-pwsh "$DEANNON_PS1" -Config "$CONFIG_PATH" "$INPUT_PATH"
+pwsh "$DEANNON_PS1" -Config "$CONFIG_PATH" -File "$INPUT_PATH"
 
 if ! diff -u "$EXPECTED_PATH" "$INPUT_PATH"; then
     echo "Disabled-sections output mismatch" >&2

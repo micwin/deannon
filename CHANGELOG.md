@@ -1,8 +1,11 @@
 # Changelog
 
 ## [0.2.5] - 2026-04-09
+### Changed
+- CLI now requires explicit `-File/-f` arguments for every input; positional arguments are no longer interpreted as files. This removes ambiguity with the `-Config` parameter.
+
 ### Fixed
-- Further hardened positional argument handling on Windows PowerShell: the script now falls back to `deannon.ini` and wraps `$Files` in an array even when PowerShell binds nothing, removing the "Count" property errors.
+- Further hardened positional argument handling on Windows PowerShell: the script now wraps the supplied file array safely, preventing the `Count` property errors even when PowerShell binds values oddly.
 
 ## [0.2.4] - 2026-04-09
 ### Added
