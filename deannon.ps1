@@ -959,7 +959,14 @@ function Apply-HintAnonymization {
     return ,@($result, $total)
 }
 
-if (-not $Files -or $Files.Count -eq 0) {
+$providedConfigExplicit = $PSBoundParameters.ContainsKey('Config')
+if (-not $providedConfigExplicit -and $Config) {
+    $Files = @($Config) + @($Files)
+    $Config = $null
+}
+
+$Files = @($Files)
+if ($Files.Count -eq 0) {
     throw 'Please provide at least one file to process.'
 }
 

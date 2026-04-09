@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.2.3] - 2026-04-09
+### Added
+- CLI convenience: when `-Config` is omitted, every positional argument is now treated as an input file. This makes `./deannon.ps1 output.json` work with the default config.
+
+### Changed
+- README usage section documents the new behavior.
+
+### Fixed
+- Suppressed property-access crashes that happened when the first positional argument was interpreted as `-Config`; mixed token detection now gracefully flips to deanonymization only when generated entries exist.
+
 ## [0.2.2] - 2026-04-09
 ### Added
 - `disabled=true` / `enabled=false` support on `full.*`, `hint.*`, and `include.*` blocks, plus the `025-disabled-sections` Smokey test to guard the behavior.
