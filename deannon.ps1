@@ -989,7 +989,11 @@ if (-not $providedConfigExplicit -and $Config) {
     $Config = $null
 }
 
-$Files = @($Files)
+if ($null -eq $Files) {
+    $Files = @()
+} else {
+    $Files = @($Files)
+}
 if ($Files.Count -eq 0) {
     throw 'Please provide at least one file to process.'
 }
