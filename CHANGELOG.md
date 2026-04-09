@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.2.1] - 2026-04-09
+### Added
+- `scripts/release.sh` helper to run Smokey, bump the version, seed the changelog, and list the manual tagging steps.
+
+### Changed
+- All Smokey tests (including 000/010/020/999) now live in their own directories with `run.sh`, and each keeps its fixtures locally; the shared `tests/testdata/` directory was removed.
+
+### Fixed
+- n/a
+
+
 ## [0.2.0] - 2026-04-09
 ### Added
 - Include directives (`[include.*]`) with optional `include_file` overrides and automatic `<name>.ini` fallback.
